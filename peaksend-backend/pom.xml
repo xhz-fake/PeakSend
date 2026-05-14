@@ -9,7 +9,7 @@
         <version>2.7.3</version>
     </parent>
     <groupId>com.sky</groupId>
-    <artifactId>sky-take-out</artifactId>
+    <artifactId>peaksend-backend</artifactId>
     <packaging>pom</packaging>
     <version>1.0-SNAPSHOT</version>
     <modules>
@@ -19,7 +19,7 @@
     </modules>
     <properties>
         <mybatis.spring>2.2.0</mybatis.spring>
-        <lombok>1.18.20</lombok>
+        <lombok>1.18.38</lombok>
         <fastjson>1.2.76</fastjson>
         <commons.lang>2.6</commons.lang>
         <druid>1.2.1</druid>
