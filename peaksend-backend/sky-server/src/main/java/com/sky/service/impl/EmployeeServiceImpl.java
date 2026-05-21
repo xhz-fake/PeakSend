@@ -21,7 +21,6 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.util.DigestUtils;
 
-import java.time.LocalDateTime;
 import java.util.List;
 
 @Service
@@ -71,8 +70,6 @@ public class EmployeeServiceImpl implements EmployeeService {
      * @param employeeDTO
      */
     public void save(EmployeeDTO employeeDTO) {
-        System.out.println("当前线程的id："+Thread.currentThread().getId());
-
         Employee existingEmployee = employeeMapper.getByUsername(employeeDTO.getUsername());
         if (existingEmployee != null) {
             throw new BaseException(employeeDTO.getUsername() + MessageConstant.ALREADY_EXISTS);
@@ -88,15 +85,6 @@ public class EmployeeServiceImpl implements EmployeeService {
 
         //设置默认密码(md5加密的)
         employee.setPassword(DigestUtils.md5DigestAsHex(PasswordConstant.DEFAULT_PASSWORD.getBytes()));
-
-        // 设置当前记录的创建时间和修改时间
-        employee.setCreateTime(LocalDateTime.now());
-        employee.setUpdateTime(LocalDateTime.now());
-
-        // 设置当前记录创建人 id 及修改人 id
-        // TODO 后期需要改为当前登录用户的 id，避免写死
-        employee.setCreateUser(10L);
-        employee.setUpdateUser(10L);
 
         employeeMapper.insert(employee);
 
@@ -129,8 +117,6 @@ public class EmployeeServiceImpl implements EmployeeService {
         Employee employee = Employee.builder()
                 .id(id)
                 .status(status)
-                .updateTime(LocalDateTime.now())
-                .updateUser(10L)
                 .build();
 
         employeeMapper.update(employee);
@@ -156,8 +142,6 @@ public class EmployeeServiceImpl implements EmployeeService {
     public void update(EmployeeDTO employeeDTO) {
         Employee employee = new Employee();
         BeanUtils.copyProperties(employeeDTO, employee);
-        employee.setUpdateTime(LocalDateTime.now());
-        employee.setUpdateUser(10L);
         employeeMapper.update(employee);
     }
 

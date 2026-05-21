@@ -6,3 +6,5 @@ sky:
     database: sky_take_out
     username: "root"
     password: "060723"
+  local-upload:
+    base-path: D:/ProgramFiles/CodeProjects/PeakSend/uploads

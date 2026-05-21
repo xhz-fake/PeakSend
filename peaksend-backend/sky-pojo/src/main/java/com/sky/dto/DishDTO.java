@@ -9,6 +9,10 @@ import java.util.List;
 
 @Data
 public class DishDTO implements Serializable {
+    //这说明前端一次提交过来的，不是一条单独菜品，而是：
+    //- 一条菜品信息
+    //- 再加多条口味信息
+    //  这就是 Day3 最重要的业务特点：一对多
 
     private Long id;
     //菜品名称

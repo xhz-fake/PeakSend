@@ -1,6 +1,7 @@
 package com.sky.config;
 
 import com.sky.interceptor.JwtTokenAdminInterceptor;
+import com.sky.properties.LocalUploadProperties;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Bean;
@@ -24,6 +25,9 @@ public class WebMvcConfiguration extends WebMvcConfigurationSupport {
 
     @Autowired
     private JwtTokenAdminInterceptor jwtTokenAdminInterceptor;
+
+    @Autowired
+    private LocalUploadProperties localUploadProperties;
 
     /**
      * 注册自定义拦截器
@@ -66,5 +70,16 @@ public class WebMvcConfiguration extends WebMvcConfigurationSupport {
         log.info("开始设置静态资源映射...");
         registry.addResourceHandler("/doc.html").addResourceLocations("classpath:/META-INF/resources/");
         registry.addResourceHandler("/webjars/**").addResourceLocations("classpath:/META-INF/resources/webjars/");
+        if (localUploadProperties.getBasePath() != null && !localUploadProperties.getBasePath().isEmpty()) {
+            String basePath = localUploadProperties.getBasePath().replace("\\", "/");
+            if (!basePath.endsWith("/")) {
+                basePath = basePath + "/";
+            }
+            registry.addResourceHandler("/uploads/**").addResourceLocations("file:" + basePath);
+        }
+        //- 如果有人访问 /uploads/**
+        //- 不要把它当普通 Controller 接口去找
+        //- 而是去本地磁盘目录 basePath 里找对应文件
+        //这就叫：静态资源映射
     }
 }

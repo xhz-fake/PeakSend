@@ -13,7 +13,6 @@ import org.springframework.beans.BeanUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
-import java.time.LocalDateTime;
 import java.util.List;
 
 @Service
@@ -32,10 +31,6 @@ public class CategoryServiceImpl implements CategoryService {
         BeanUtils.copyProperties(categoryDTO, category);
 
         category.setStatus(StatusConstant.ENABLE);
-        category.setCreateTime(LocalDateTime.now());
-        category.setUpdateTime(LocalDateTime.now());
-        category.setCreateUser(10L);
-        category.setUpdateUser(10L);
 
         categoryMapper.insert(category);
     }
@@ -67,8 +62,6 @@ public class CategoryServiceImpl implements CategoryService {
         Category category = Category.builder()
                 .id(id)
                 .status(status)
-                .updateTime(LocalDateTime.now())
-                .updateUser(10L)
                 .build();
 
         categoryMapper.update(category);
@@ -82,8 +75,6 @@ public class CategoryServiceImpl implements CategoryService {
     public void update(CategoryDTO categoryDTO) {
         Category category = new Category();
         BeanUtils.copyProperties(categoryDTO, category);
-        category.setUpdateTime(LocalDateTime.now());
-        category.setUpdateUser(10L);
         categoryMapper.update(category);
     }
 
@@ -94,5 +85,19 @@ public class CategoryServiceImpl implements CategoryService {
      */
     public void deleteById(Long id) {
         categoryMapper.deleteById(id);
+    }
+
+    /**
+     * 根据类型查询分类
+     *
+     * @param type
+     * @return
+     */
+    @Override
+    public List<Category> list(Integer type) {
+        Category category = new Category();
+        category.setType(type);
+        category.setStatus(StatusConstant.ENABLE);
+        return categoryMapper.list(category);
     }
 }

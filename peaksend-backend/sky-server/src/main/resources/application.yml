@@ -6,6 +6,10 @@ spring:
     active: dev
   main:
     allow-circular-references: true
+  servlet:
+    multipart:
+      max-file-size: 10MB
+      max-request-size: 10MB
   datasource:
     druid:
       driver-class-name: ${sky.datasource.driver-class-name}
@@ -37,3 +41,5 @@ sky:
     admin-ttl: 7200000
     # 设置前端传递过来的令牌名称
     admin-token-name: token
+  local-upload:
+    base-path: ${sky.local-upload.base-path}
