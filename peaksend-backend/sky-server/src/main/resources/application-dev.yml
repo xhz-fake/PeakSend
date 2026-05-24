@@ -8,3 +8,9 @@ sky:
     password: "060723"
   local-upload:
     base-path: D:/ProgramFiles/CodeProjects/PeakSend/uploads
+
+spring:
+  redis:
+    host: 127.0.0.1
+    port: 6379
+    database: 0
