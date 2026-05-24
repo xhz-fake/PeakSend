@@ -3,6 +3,29 @@
         "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
 <mapper namespace="com.sky.mapper.SetmealDishMapper">
 
+    <insert id="insertBatch">
+        insert into setmeal_dish (setmeal_id, dish_id, name, price, copies)
+        values
+        <foreach collection="setmealDishes" item="setmealDish" separator=",">
+            (#{setmealDish.setmealId}, #{setmealDish.dishId}, #{setmealDish.name}, #{setmealDish.price},
+             #{setmealDish.copies})
+        </foreach>
+    </insert>
+
+    <select id="getBySetmealId" resultType="com.sky.entity.SetmealDish">
+        select *
+        from setmeal_dish
+        where setmeal_id = #{setmealId}
+    </select>
+
+    <delete id="deleteBySetmealIds">
+        delete from setmeal_dish
+        where setmeal_id in
+        <foreach collection="setmealIds" item="setmealId" open="(" separator="," close=")">
+            #{setmealId}
+        </foreach>
+    </delete>
+
     <select id="countByDishIds" resultType="java.lang.Integer">
         select count(*)
         from setmeal_dish
