@@ -11,6 +11,9 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
+import java.util.HashMap;
+import java.util.Map;
+
 /**
  * 用户端店铺相关接口
  */
@@ -42,5 +45,18 @@ public class ShopController {
         //- 管理端和用户端虽然是两个 Controller
         //- 但它们读的是 Redis 里的同一份状态
 
+    }
+
+    /**
+     * 获取店铺联系方式
+     *
+     * @return
+     */
+    @GetMapping("/getMerchantInfo")
+    @ApiOperation("获取店铺联系方式")
+    public Result<Map<String, String>> getMerchantInfo() {
+        Map<String, String> merchantInfo = new HashMap<>();
+        merchantInfo.put("phone", "");
+        return Result.success(merchantInfo);
     }
 }

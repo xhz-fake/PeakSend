@@ -59,4 +59,12 @@ public interface DishMapper {
      * @return
      */
     DishVO getById(Long id);
+
+    /**
+     * 按条件查询菜品
+     *
+     * @param dish
+     * @return
+     */
+    List<Dish> list(Dish dish);
 }

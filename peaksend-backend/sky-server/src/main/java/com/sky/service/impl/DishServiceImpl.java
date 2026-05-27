@@ -182,4 +182,21 @@ public class DishServiceImpl implements DishService {
         //为什么不一个个比较“哪些口味变了、哪些删了、哪些新增了”？
         //因为那样虽然更精细，但对当前场景来说会复杂很多。
     }
+
+    /**
+     * 条件查询菜品并携带口味
+     *
+     * @param dish
+     * @return
+     */
+    @Override
+    public List<DishVO> listWithFlavor(Dish dish) {
+        List<Dish> dishes = dishMapper.list(dish);
+        return dishes.stream().map(item -> {
+            DishVO dishVO = new DishVO();
+            BeanUtils.copyProperties(item, dishVO);
+            dishVO.setFlavors(dishFlavorMapper.getByDishId(item.getId()));
+            return dishVO;
+        }).collect(java.util.stream.Collectors.toList());
+    }
 }

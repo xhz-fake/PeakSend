@@ -8,6 +8,9 @@ sky:
     password: "060723"
   local-upload:
     base-path: D:/ProgramFiles/CodeProjects/PeakSend/uploads
+  wechat:
+    appid: "wxbfdcbbe6d7823895"
+    secret: "5ec99546047003357bc77e328cf9cf00"
 
 spring:
   redis:
