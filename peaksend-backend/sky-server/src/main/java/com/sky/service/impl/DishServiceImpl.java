@@ -23,7 +23,7 @@ import org.springframework.transaction.annotation.Transactional;
 import java.util.Collections;
 import java.util.List;
 
-@Service
+@Service// 告诉 Spring：这是业务层类，请把它注册到容器里
 public class DishServiceImpl implements DishService {
 // 所以 DishServiceImpl 并不直接写 SQL，
 // 它像一个调度员：

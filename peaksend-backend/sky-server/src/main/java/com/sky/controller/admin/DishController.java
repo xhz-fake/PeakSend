@@ -10,6 +10,7 @@ import io.swagger.annotations.Api;
 import io.swagger.annotations.ApiOperation;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -36,6 +37,7 @@ public class DishController {
      */
     @PostMapping   // 说明这是一个 POST 请求， - 所以完整地址就是：POST /admin/dish
     @ApiOperation("新增菜品")  // 这是接口文档描述
+    @CacheEvict(cacheNames = "dishCache", key = "#dishDTO.categoryId")// 它的意思是： 这个方法成功执行后，把名为 dishCache 的缓存清空。
     public Result<String> save(@RequestBody DishDTO dishDTO) {  //- 它的意思是：前端传来的 JSON 请求体，要被转换成一个 DishDTO 对象
         log.info("新增菜品：{}", dishDTO);
         dishService.saveWithFlavor(dishDTO);
@@ -82,6 +84,7 @@ public class DishController {
      */
     @DeleteMapping
     @ApiOperation("批量删除菜品")
+    @CacheEvict(cacheNames = "dishCache", allEntries = true)
     public Result<String> delete(@RequestParam List<Long> ids) { //@RequestParam 它的意思是：从 URL 查询参数里取值
         log.info("批量删除菜品：{}", ids);
         dishService.deleteBatch(ids);
@@ -97,10 +100,21 @@ public class DishController {
      */
     @PostMapping("/status/{status}")
     @ApiOperation("菜品起售停售")
+    @CacheEvict(cacheNames = "dishCache", allEntries = true) // allEntries = true 表示不是删一个 key，而是把 dishCache 这一组都清掉。
+    //- @CacheEvict 不会先帮你判断“这次更新前后值到底变没变”
+    //- 它只看： 这个方法是否成功执行
+    //- 只要这个方法成功执行后，把 dishCache 整组清掉
+
+    ///- 为什么管理端改的是一个菜品，却把整个 dishCache 清掉？
+    //- 因为用户端缓存粒度是“按分类缓存整份菜品列表”
+    //- 一个菜品变化会影响这个分类下展示结果
+    //- 为了实现简单和保证一致性，我们先采用整组清缓存的策略
+    //- 这是典型的“先保证正确，再考虑更细粒度优化”的工程取舍
+
     public Result<String> startOrStop(@PathVariable Integer status, @RequestParam Long id) {
-        log.info("菜品起售停售：status={}, id={}", status, id);
-        dishService.startOrStop(status, id);
-        return Result.success();
+        log.info("菜品起售停售：status={}, id={}", status, id);// 这句日志帮你确认管理端变更请求确实进来了
+        dishService.startOrStop(status, id);// 这里才是真正更新数据库菜品状态的地方
+        return Result.success();// 方法执行成功后，Spring Cache 就会按 @CacheEvict 规则去删缓存
     }
     //以后看到方法参数，脑子里要先问：
     //- 这是从 body 来的？
@@ -115,6 +129,7 @@ public class DishController {
      */
     @PutMapping
     @ApiOperation("修改菜品")
+    @CacheEvict(cacheNames = "dishCache", allEntries = true)
     public Result<String> update(@RequestBody DishDTO dishDTO) {
         log.info("修改菜品：{}", dishDTO);
         dishService.updateWithFlavor(dishDTO);

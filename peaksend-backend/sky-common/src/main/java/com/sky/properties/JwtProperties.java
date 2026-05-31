@@ -4,8 +4,8 @@ import lombok.Data;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.stereotype.Component;
 
-@Component
-@ConfigurationProperties(prefix = "sky.jwt")
+@Component// 表示：把这个类交给 Spring 管理，后面别的类就能直接注入它。
+@ConfigurationProperties(prefix = "sky.jwt")// 表示：把配置文件里 sky.jwt 开头的内容，自动绑定到这个类里。
 @Data
 public class JwtProperties {
 
