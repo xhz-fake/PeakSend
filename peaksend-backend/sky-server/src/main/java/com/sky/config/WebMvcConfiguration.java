@@ -2,11 +2,14 @@ package com.sky.config;
 
 import com.sky.interceptor.JwtTokenAdminInterceptor;
 import com.sky.interceptor.JwtTokenUserInterceptor;
+import com.sky.json.JacksonObjectMapper;
 import com.sky.properties.LocalUploadProperties;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.http.converter.HttpMessageConverter;
+import org.springframework.http.converter.json.MappingJackson2HttpMessageConverter;
 import org.springframework.web.servlet.config.annotation.InterceptorRegistry;
 import org.springframework.web.servlet.config.annotation.ResourceHandlerRegistry;
 import org.springframework.web.servlet.config.annotation.WebMvcConfigurationSupport;
@@ -16,6 +19,8 @@ import springfox.documentation.builders.RequestHandlerSelectors;
 import springfox.documentation.service.ApiInfo;
 import springfox.documentation.spi.DocumentationType;
 import springfox.documentation.spring.web.plugins.Docket;
+
+import java.util.List;
 
 /**
  * 配置类，注册web层相关组件
@@ -96,5 +101,18 @@ public class WebMvcConfiguration extends WebMvcConfigurationSupport {
         //- 不要把它当普通 Controller 接口去找
         //- 而是去本地磁盘目录 basePath 里找对应文件
         //这就叫：静态资源映射
+    }
+
+    /**
+     * 扩展 Spring MVC 的消息转换器，让 LocalDateTime 等时间类型按项目约定格式输出
+     *
+     * @param converters 消息转换器列表
+     */
+    @Override
+    protected void extendMessageConverters(List<HttpMessageConverter<?>> converters) {
+        log.info("扩展消息转换器...");
+        MappingJackson2HttpMessageConverter converter = new MappingJackson2HttpMessageConverter();
+        converter.setObjectMapper(new JacksonObjectMapper());
+        converters.add(0, converter);
     }
 }

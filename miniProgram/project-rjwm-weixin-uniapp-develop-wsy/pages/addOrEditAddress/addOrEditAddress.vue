@@ -432,7 +432,7 @@ export default {
         letter-spacing: 0px;
         line-height: 44rpx;
       }
-      /deep/ .is-input-border {
+      ::v-deep .is-input-border {
         border: 0 none;
         border-radius: none;
         min-height: auto;
@@ -457,7 +457,7 @@ export default {
       .uni-input {
         flex: 1;
       }
-      /deep/ .uni-place {
+      ::v-deep .uni-place {
         font-size: 26rpx;
         font-family: PingFangSC, PingFangSC-Regular;
         font-weight: 400;
@@ -557,7 +557,7 @@ export default {
       width: 100%;
       height: 50rpx;
       margin: 0;
-      /deep/ .uni-place {
+      ::v-deep .uni-place {
         font-family: PingFangSC, PingFangSC-Regular;
         font-weight: 400;
         color: #999999;
@@ -606,10 +606,10 @@ export default {
 .customer-box {
   height: 100vh;
 }
-/deep/ .uni-icons {
+::v-deep .uni-icons {
   font-size: 24px !important;
 }
-/deep/ .content-clear-icon {
+::v-deep .content-clear-icon {
   display: inline-block;
   width: 36rpx;
   height: 36rpx;

@@ -55,7 +55,7 @@ export const statusWord = (status, time) => {
 		if (status === 1 && time > 0) {
 			return '待付款'
 		} else if (status === 6 || (time < 0 && status === 1)) {
-			return '已完成'
+			return '已取消'
 		}
 	}
 	switch (status) {
@@ -68,11 +68,11 @@ export const statusWord = (status, time) => {
 		case 4:
 			return '派送中'
 		case 5:
-			return '派送中'
-		case 6:
 			return '已完成'
-		case 7:
+		case 6:
 			return '已取消'
+		case 7:
+			return '退款'
 	}
 }
 // 倒计时

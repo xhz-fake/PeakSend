@@ -609,7 +609,7 @@ $desc-font-color: #818693;
   .beizhu_text_ios {
     padding: 0 22rpx;
   }
-  /deep/ .textarea-placeholder {
+  ::v-deep .textarea-placeholder {
     font-size: 26rpx;
     line-height: 36rpx;
     height: 36rpx;

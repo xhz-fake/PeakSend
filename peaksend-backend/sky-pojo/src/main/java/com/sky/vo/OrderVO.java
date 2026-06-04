@@ -5,6 +5,8 @@ import com.sky.entity.Orders;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
+
+import java.math.BigDecimal;
 import java.io.Serializable;
 import java.util.List;
 
@@ -18,5 +20,8 @@ public class OrderVO extends Orders implements Serializable {
 
     //订单详情
     private List<OrderDetail> orderDetailList;
+
+    //配送费
+    private BigDecimal deliveryFee;
 
 }

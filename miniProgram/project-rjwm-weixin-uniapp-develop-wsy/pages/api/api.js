@@ -342,6 +342,12 @@ export const paymentOrder = (params) =>
 		method: 'PUT',
 		params
 	})
+// 开发态模拟支付成功
+export const mockPaySuccessOrder = (params) =>
+	request({
+		url: `/user/order/mockPaySuccess/${params}`,
+		method: 'PUT'
+	})
 // 再来一单
 export const repetitionOrder = (params) =>
 	request({
@@ -365,5 +371,4 @@ export const queryOrdersCheckStatus = (params) =>
 		method: 'get',
 		params
 	})
-
 

@@ -57,7 +57,11 @@
 
 <script>
 import { mapState } from "vuex";
-import { paymentOrder, cancelOrder } from "@/pages/api/api.js";
+import {
+  paymentOrder,
+  cancelOrder,
+  mockPaySuccessOrder,
+} from "@/pages/api/api.js";
 export default {
   data() {
     return {
@@ -97,6 +101,35 @@ export default {
         };
         paymentOrder(params).then(async (res) => {
           if (res.code === 1) {
+            if (res.data && res.data.mockPay) {
+              const [modalErr, modalRes] = await uni.showModal({
+                title: "开发态模拟支付",
+                content: "当前环境未接入真实商户支付，是否模拟支付成功？",
+                confirmText: "确认支付",
+                cancelText: "稍后再说",
+              });
+              if (modalErr || !modalRes.confirm) {
+                return;
+              }
+              const mockRes = await mockPaySuccessOrder(
+                this.orderDataInfo.orderNumber
+              );
+              if (mockRes.code === 1) {
+                await uni.showToast({ title: "支付成功", icon: "success" });
+                setTimeout(() => {
+                  uni.redirectTo({
+                    url: "/pages/success/index?orderId=" + this.orderId,
+                  });
+                }, 1500);
+              } else {
+                uni.showToast({
+                  title: mockRes.msg,
+                  duration: 1000,
+                  icon: "none",
+                });
+              }
+              return;
+            }
             const [err, payRes] = await uni.requestPayment({
               ...res.data,
               package: res.data.packageStr, // package 为微信支付必须的字段
