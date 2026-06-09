@@ -8,6 +8,7 @@ import com.sky.enumeration.OperationType;
 import com.sky.vo.DishVO;
 import org.apache.ibatis.annotations.Mapper;
 
+import java.util.Map;
 import java.util.List;
 
 @Mapper
@@ -67,4 +68,12 @@ public interface DishMapper {
      * @return
      */
     List<Dish> list(Dish dish);
+
+    /**
+     * 根据动态条件统计菜品数量
+     *
+     * @param map 条件
+     * @return 菜品数量
+     */
+    Integer countByMap(Map<String, Object> map);
 }

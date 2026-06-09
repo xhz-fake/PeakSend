@@ -118,6 +118,22 @@ public class OrderController {
     }
 
     /**
+     * 用户催单
+     *
+     * @param id 订单 id
+     * @return 处理结果
+     */
+    @GetMapping("/reminder/{id}")
+    @ApiOperation("客户催单")
+    public Result reminder(@PathVariable Long id) {
+        log.info("客户催单：{}", id);
+        orderService.reminder(id);
+        return Result.success();
+        //- 后端处理成功后，回前端一个成功结果
+        //- 重点不是返回内容，而是动作已经触发了
+    }
+
+    /**
      * 订单支付
      *
      * @param ordersPaymentDTO 支付参数

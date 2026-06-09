@@ -133,4 +133,14 @@
         where sd.setmeal_id = #{setmealId}
     </select>
 
+    <select id="countByMap" resultType="java.lang.Integer">
+        select count(id)
+        from setmeal
+        <where>
+            <if test="status != null">
+                and status = #{status}
+            </if>
+        </where>
+    </select>
+
 </mapper>

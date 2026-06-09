@@ -25,7 +25,7 @@ import java.util.List;
 /**
  * 配置类，注册web层相关组件
  */
-@Configuration
+@Configuration// 这个类不是拿来写业务逻辑的，而是拿来往 Spring 容器里放配置和组件的。
 @Slf4j
 public class WebMvcConfiguration extends WebMvcConfigurationSupport {
 
@@ -64,7 +64,7 @@ public class WebMvcConfiguration extends WebMvcConfigurationSupport {
      * 通过knife4j生成接口文档
      * @return
      */
-    @Bean
+    @Bean// 把下面这个方法返回的对象，交给 Spring 管理。
     public Docket docket() {
         log.info("准备生成接口文档....");
         ApiInfo apiInfo = new ApiInfoBuilder()

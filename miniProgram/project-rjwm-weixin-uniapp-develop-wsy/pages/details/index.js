@@ -83,7 +83,7 @@ export default {
 				if (res.code === 1) {
 					this.showConfirm = true
 					this.textTip = '您的催单信息已发出！'
-					this.$refs.status.$refs.commonPopup.open(val.type)
+					this.$refs.commonPopup.open(val.type)
 					this.orderId = val.id
 				}
 			})
@@ -95,7 +95,7 @@ export default {
 					this.isPayment = true
 					this.showConfirm = true
 					this.textTip = '您的订单已取消！'
-					this.$refs.status.$refs.commonPopup.open(type)
+					this.$refs.commonPopup.open(type)
 					this.orderId = obj.id
 				}
 			})
@@ -106,7 +106,7 @@ export default {
 				this.cancel(val.type, val.obj)
 			} else {
 				this.showConfirm = false
-				this.$refs.status.$refs.commonPopup.open(val.type)
+				this.$refs.commonPopup.open(val.type)
 				this.textTip = '请联系商家进行取消！'
 			}
 		},
@@ -189,7 +189,7 @@ export default {
 			})
 		},
 		openPopuos(type) {
-			this.$refs.status.$refs.commonPopup.open(type)
+			this.$refs.commonPopup.open(type)
 		},
 		// 联系商家进行退款弹层
 		handleRefund(type) {
@@ -210,7 +210,7 @@ export default {
 		},
 		// closePopupInfo
 		closePopupInfo(type) {
-			this.$refs.status.$refs.commonPopup.close(type)
+			this.$refs.commonPopup.close(type)
 			this.getBaseData(this.orderId)
 		},
 		// 立即支付

@@ -6,6 +6,8 @@ import org.apache.ibatis.annotations.Mapper;
 import org.apache.ibatis.annotations.Options;
 import org.apache.ibatis.annotations.Select;
 
+import java.util.Map;
+
 /**
  * C端用户 Mapper
  */
@@ -38,4 +40,21 @@ public interface UserMapper {
     @Options(useGeneratedKeys = true, keyProperty = "id")
     @Insert("insert into user(openid, create_time) values(#{openid}, #{createTime})")
     void insert(User user);
+
+    /**
+     * 根据动态条件统计用户数量
+     *
+     * @param map 条件
+     * @return 用户数量
+     */
+    @Select({
+            "<script>",
+            "select count(id) from user",
+            "<where>",
+            "<if test='begin != null'> and create_time <![CDATA[ >= ]]> #{begin} </if>",
+            "<if test='end != null'> and create_time <![CDATA[ <= ]]> #{end} </if>",
+            "</where>",
+            "</script>"
+    })
+    Integer countByMap(Map<String, Object> map);
 }

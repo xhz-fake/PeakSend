@@ -5,8 +5,11 @@ import com.github.pagehelper.Page;
 import com.github.pagehelper.PageHelper;
 import com.sky.constant.MessageConstant;
 import com.sky.context.BaseContext;
+import com.sky.dto.OrdersCancelDTO;
+import com.sky.dto.OrdersConfirmDTO;
 import com.sky.dto.OrdersPageQueryDTO;
 import com.sky.dto.OrdersPaymentDTO;
+import com.sky.dto.OrdersRejectionDTO;
 import com.sky.dto.OrdersSubmitDTO;
 import com.sky.entity.AddressBook;
 import com.sky.entity.OrderDetail;
@@ -25,9 +28,11 @@ import com.sky.properties.WeChatProperties;
 import com.sky.result.PageResult;
 import com.sky.service.OrderService;
 import com.sky.utils.WeChatPayUtil;
+import com.sky.vo.OrderStatisticsVO;
 import com.sky.vo.OrderPaymentVO;
 import com.sky.vo.OrderSubmitVO;
 import com.sky.vo.OrderVO;
+import com.sky.websocket.WebSocketServer;
 import org.springframework.beans.BeanUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
@@ -63,6 +68,9 @@ public class OrderServiceImpl implements OrderService {
 
     @Autowired
     private WeChatPayUtil weChatPayUtil;
+
+    @Autowired
+    private WebSocketServer webSocketServer;
 
     /**
      * 用户提交订单
@@ -254,6 +262,168 @@ public class OrderServiceImpl implements OrderService {
     }
 
     /**
+     * 用户催单
+     *
+     * @param id 订单 id
+     */
+    @Override
+    public void reminder(Long id) {// 负责“生成催单消息”,参数是订单 id
+        //1.本质是在做催单资格校验，而不是立刻发 WebSocket 消息。
+        Long userId = BaseContext.getCurrentId();// 后端必须先知道：现在发起催单的人，到底是谁
+        Orders orders = ordersMapper.getById(id);// 先把要催的这张订单从数据库里找出来
+        if (orders == null || !orders.getUserId().equals(userId)) {//- 校验订单存在，校验订单归属权
+            throw new OrderBusinessException(MessageConstant.ORDER_NOT_FOUND);//- 不想把系统内部过多细节暴露给前端，对前端来说，结果都是“这张单你不能催”
+        }
+        if (!Orders.TO_BE_CONFIRMED.equals(orders.getStatus())) {// 只有“商家还没接单”的订单，用户才允许催单
+            throw new OrderBusinessException(MessageConstant.ORDER_STATUS_ERROR);
+        }
+
+        //2.组装消息并交给 WebSocket
+        JSONObject message = new JSONObject();
+        message.put("type", 2);//先给这条消息打一个催单类型标签
+        message.put("orderId", id);// 当前是哪张订单触发的这次提醒
+        message.put("content", "订单号：" + orders.getNumber());//给这条消息补上实际展示给管理端看的文本内容
+        webSocketServer.sendToAllClient(message.toJSONString());// 把组装好的催单消息转成 JSON 字符串，然后广播给所有在线管理端
+    }
+
+    @Override
+    public PageResult conditionSearch(OrdersPageQueryDTO ordersPageQueryDTO) {
+        PageHelper.startPage(ordersPageQueryDTO.getPage(), ordersPageQueryDTO.getPageSize());
+        Page<Orders> orderPage = ordersMapper.pageQuery(ordersPageQueryDTO);
+        List<OrderVO> records = getOrderVOList(orderPage);
+        return new PageResult(orderPage.getTotal(), records);
+    }
+
+    @Override
+    public OrderStatisticsVO statistics() {
+        OrderStatisticsVO orderStatisticsVO = new OrderStatisticsVO();
+        orderStatisticsVO.setToBeConfirmed(ordersMapper.countStatus(Orders.TO_BE_CONFIRMED));
+        orderStatisticsVO.setConfirmed(ordersMapper.countStatus(Orders.CONFIRMED));
+        orderStatisticsVO.setDeliveryInProgress(ordersMapper.countStatus(Orders.DELIVERY_IN_PROGRESS));
+        return orderStatisticsVO;
+    }
+
+    @Override
+    public OrderVO adminDetails(Long id) {
+        Orders orders = ordersMapper.getById(id);
+        if (orders == null) {
+            throw new OrderBusinessException(MessageConstant.ORDER_NOT_FOUND);
+        }
+
+        List<OrderDetail> orderDetailList = orderDetailMapper.getByOrderId(id);
+
+        OrderVO orderVO = new OrderVO();
+        BeanUtils.copyProperties(orders, orderVO);
+        orderVO.setOrderDetailList(orderDetailList);
+        orderVO.setDeliveryFee(BigDecimal.ZERO);
+        return orderVO;
+    }
+
+    @Override
+    public void confirm(OrdersConfirmDTO ordersConfirmDTO) {
+        Orders orders = ordersMapper.getById(ordersConfirmDTO.getId());
+        if (orders == null) {
+            throw new OrderBusinessException(MessageConstant.ORDER_NOT_FOUND);
+        }
+        //- 如果这张订单根本不存在
+        //- 那当然不能接单
+        if (!Orders.TO_BE_CONFIRMED.equals(orders.getStatus())) {
+            throw new OrderBusinessException(MessageConstant.ORDER_STATUS_ERROR);
+        }
+        // 只有待接单状态的订单，管理端现在点“接单”才合理。
+
+        Orders updateOrder = new Orders();
+        updateOrder.setId(orders.getId());
+        updateOrder.setStatus(Orders.CONFIRMED);//把订单状态改成：已接单
+        //也就是说，管理端点击“接单”这件事，最终在数据库层面的本质就是：
+        //把订单状态从 TO_BE_CONFIRMED 改成 CONFIRMED
+        ordersMapper.update(updateOrder);
+    }
+
+    @Override
+    public void rejection(OrdersRejectionDTO ordersRejectionDTO) throws Exception {
+        Orders orders = ordersMapper.getById(ordersRejectionDTO.getId());
+        if (orders == null) {
+            throw new OrderBusinessException(MessageConstant.ORDER_NOT_FOUND);
+        }
+        if (!Orders.TO_BE_CONFIRMED.equals(orders.getStatus())) {
+            throw new OrderBusinessException(MessageConstant.ORDER_STATUS_ERROR);
+        }
+
+        Orders updateOrder = new Orders();
+        updateOrder.setId(orders.getId());
+        updateOrder.setStatus(Orders.CANCELLED);
+        updateOrder.setRejectionReason(ordersRejectionDTO.getRejectionReason());
+        updateOrder.setCancelTime(LocalDateTime.now());
+        if (needsRefund(orders)) {
+            refundIfNecessary(orders);
+            updateOrder.setPayStatus(Orders.REFUND);
+        }
+        ordersMapper.update(updateOrder);
+    }
+
+    @Override
+    public void cancel(OrdersCancelDTO ordersCancelDTO) throws Exception {
+        Orders orders = ordersMapper.getById(ordersCancelDTO.getId());
+        if (orders == null) {
+            throw new OrderBusinessException(MessageConstant.ORDER_NOT_FOUND);
+        }
+        if (Orders.COMPLETED.equals(orders.getStatus()) || Orders.CANCELLED.equals(orders.getStatus())) {
+            throw new OrderBusinessException(MessageConstant.ORDER_STATUS_ERROR);
+        }
+
+        Orders updateOrder = new Orders();
+        updateOrder.setId(orders.getId());
+        updateOrder.setStatus(Orders.CANCELLED);
+        updateOrder.setCancelReason(ordersCancelDTO.getCancelReason());
+        updateOrder.setCancelTime(LocalDateTime.now());
+        if (needsRefund(orders)) {
+            refundIfNecessary(orders);
+            updateOrder.setPayStatus(Orders.REFUND);
+        }
+        ordersMapper.update(updateOrder);
+    }
+
+    @Override
+    public void delivery(Long id) {
+        Orders orders = ordersMapper.getById(id);// 一切状态流转，都先以当前订单真实状态为前提
+        if (orders == null) {
+            throw new OrderBusinessException(MessageConstant.ORDER_NOT_FOUND);
+        }
+        if (!Orders.CONFIRMED.equals(orders.getStatus())) {
+            throw new OrderBusinessException(MessageConstant.ORDER_STATUS_ERROR);
+        }
+
+        Orders updateOrder = new Orders();
+        //- 这不是拿来表示完整订单详情的
+        //- 而是一个“我准备更新哪些字段”的载体
+        updateOrder.setId(orders.getId());
+        updateOrder.setStatus(Orders.DELIVERY_IN_PROGRESS);//把订单状态改成：派送中
+        ordersMapper.update(updateOrder);
+    }
+
+    @Override
+    public void complete(Long id) {
+        //还是那三步逻辑：
+        //1. 先查订单
+        //2. 先确认订单存在
+        //3. 再确认当前状态是否允许执行当前动作
+        Orders orders = ordersMapper.getById(id);
+        if (orders == null) {
+            throw new OrderBusinessException(MessageConstant.ORDER_NOT_FOUND);
+        }
+        if (!Orders.DELIVERY_IN_PROGRESS.equals(orders.getStatus())) {
+            throw new OrderBusinessException(MessageConstant.ORDER_STATUS_ERROR);
+        }
+
+        Orders updateOrder = new Orders();
+        updateOrder.setId(orders.getId());
+        updateOrder.setStatus(Orders.COMPLETED);//把订单状态改成：已完成
+        updateOrder.setDeliveryTime(LocalDateTime.now());// 订单完成时，要把这个动作发生的时间记下来
+        ordersMapper.update(updateOrder);
+    }
+
+    /**
      * 订单支付
      *
      * @param ordersPaymentDTO 支付参数
@@ -373,6 +543,53 @@ public class OrderServiceImpl implements OrderService {
                 && StringUtils.hasText(weChatProperties.getApiV3Key())
                 && StringUtils.hasText(weChatProperties.getWeChatPayCertFilePath())
                 && StringUtils.hasText(weChatProperties.getNotifyUrl());
+    }
+
+    private List<OrderVO> getOrderVOList(Page<Orders> orderPage) {
+        List<OrderVO> records = new ArrayList<>();
+        if (orderPage == null || orderPage.getTotal() <= 0) {
+            return records;
+        }
+
+        for (Orders orders : orderPage) {
+            OrderVO orderVO = new OrderVO();
+            BeanUtils.copyProperties(orders, orderVO);
+            orderVO.setOrderDishes(buildOrderDishesText(orders.getId()));
+            orderVO.setDeliveryFee(BigDecimal.ZERO);
+            records.add(orderVO);
+        }
+        return records;
+    }
+
+    private String buildOrderDishesText(Long orderId) {
+        List<OrderDetail> orderDetailList = orderDetailMapper.getByOrderId(orderId);
+        if (orderDetailList == null || orderDetailList.isEmpty()) {
+            return "";
+        }
+
+        List<String> orderDishList = orderDetailList.stream()
+                .map(item -> item.getName() + "*" + item.getNumber() + ";")
+                .collect(Collectors.toList());
+        return String.join("", orderDishList);
+    }
+
+    private boolean needsRefund(Orders orders) {
+        return Orders.PAID.equals(orders.getPayStatus());
+    }
+
+    private void refundIfNecessary(Orders orders) throws Exception {
+        if (!needsRefund(orders)) {
+            return;
+        }
+
+        if (isRealPayEnabled()) {
+            weChatPayUtil.refund(
+                    orders.getNumber(),
+                    orders.getNumber(),
+                    orders.getAmount(),
+                    orders.getAmount()
+            );
+        }
     }
 
     private String buildFullAddress(AddressBook addressBook) {
