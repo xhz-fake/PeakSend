@@ -4,14 +4,26 @@ import com.sky.dto.GoodsSalesDTO;
 import com.sky.entity.Orders;
 import com.sky.mapper.OrdersMapper;
 import com.sky.mapper.UserMapper;
+import com.sky.service.WorkspaceService;
+import com.sky.vo.BusinessDataVO;
 import com.sky.vo.SalesTop10ReportVO;
 import com.sky.service.ReportService;
 import com.sky.vo.OrderReportVO;
 import com.sky.vo.TurnoverReportVO;
 import com.sky.vo.UserReportVO;
+import org.apache.poi.ss.usermodel.Cell;
+import org.apache.poi.ss.usermodel.Row;
+import org.apache.poi.ss.usermodel.Sheet;
+import org.apache.poi.ss.usermodel.Workbook;
+import org.apache.poi.ss.util.CellRangeAddress;
+import org.apache.poi.xssf.usermodel.XSSFWorkbook;
 import org.springframework.stereotype.Service;
 
 import javax.annotation.Resource;
+import javax.servlet.ServletOutputStream;
+import javax.servlet.http.HttpServletResponse;
+import java.io.IOException;
+import java.text.DecimalFormat;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
@@ -29,6 +41,9 @@ public class ReportServiceImpl implements ReportService {
 
     @Resource
     private UserMapper userMapper;
+
+    @Resource
+    private WorkspaceService workspaceService;
 
     //这 4 个方法表面不同，骨架其实只有两种
     //- 第一种骨架： 按天循环统计
@@ -182,5 +197,78 @@ public class ReportServiceImpl implements ReportService {
                 .nameList(nameList)
                 .numberList(numberList)
                 .build();
+    }
+
+    @Override
+    public void exportBusinessData(HttpServletResponse response) {
+        LocalDate end = LocalDate.now().minusDays(1);
+        LocalDate begin = end.minusDays(29);
+        BusinessDataVO overview = workspaceService.getBusinessData(begin.atStartOfDay(), end.atTime(LocalTime.MAX));
+
+        response.setContentType("application/vnd.openxmlformats-officedocument.spreadsheetml.sheet");
+        response.setHeader("Content-Disposition", "attachment; filename=operation-report.xlsx");
+
+        try (Workbook workbook = new XSSFWorkbook();
+             ServletOutputStream outputStream = response.getOutputStream()) {
+            Sheet sheet = workbook.createSheet("运营数据报表");
+            sheet.setDefaultColumnWidth(18);
+            sheet.addMergedRegion(new CellRangeAddress(0, 0, 0, 5));
+
+            setCellValue(sheet.createRow(0).createCell(0), "运营数据报表");
+            setCellValue(sheet.createRow(1).createCell(0), "时间：" + begin + " 至 " + end);
+
+            Row summaryHeaderRow = sheet.createRow(3);
+            setCellValue(summaryHeaderRow.createCell(0), "营业额");
+            setCellValue(summaryHeaderRow.createCell(1), formatAmount(overview.getTurnover()));
+            setCellValue(summaryHeaderRow.createCell(2), "订单完成率");
+            setCellValue(summaryHeaderRow.createCell(3), formatPercent(overview.getOrderCompletionRate()));
+            setCellValue(summaryHeaderRow.createCell(4), "新增用户数");
+            setCellValue(summaryHeaderRow.createCell(5), String.valueOf(overview.getNewUsers()));
+
+            Row summaryValueRow = sheet.createRow(4);
+            setCellValue(summaryValueRow.createCell(0), "有效订单数");
+            setCellValue(summaryValueRow.createCell(1), String.valueOf(overview.getValidOrderCount()));
+            setCellValue(summaryValueRow.createCell(2), "平均客单价");
+            setCellValue(summaryValueRow.createCell(3), formatAmount(overview.getUnitPrice()));
+
+            Row detailHeaderRow = sheet.createRow(6);
+            setCellValue(detailHeaderRow.createCell(0), "日期");
+            setCellValue(detailHeaderRow.createCell(1), "营业额");
+            setCellValue(detailHeaderRow.createCell(2), "有效订单数");
+            setCellValue(detailHeaderRow.createCell(3), "订单完成率");
+            setCellValue(detailHeaderRow.createCell(4), "平均客单价");
+            setCellValue(detailHeaderRow.createCell(5), "新增用户数");
+
+            for (int i = 0; i < 30; i++) {
+                LocalDate current = begin.plusDays(i);
+                BusinessDataVO dailyData = workspaceService.getBusinessData(current.atStartOfDay(), current.atTime(LocalTime.MAX));
+                Row detailRow = sheet.createRow(7 + i);
+                setCellValue(detailRow.createCell(0), current.toString());
+                setCellValue(detailRow.createCell(1), formatAmount(dailyData.getTurnover()));
+                setCellValue(detailRow.createCell(2), String.valueOf(dailyData.getValidOrderCount()));
+                setCellValue(detailRow.createCell(3), formatPercent(dailyData.getOrderCompletionRate()));
+                setCellValue(detailRow.createCell(4), formatAmount(dailyData.getUnitPrice()));
+                setCellValue(detailRow.createCell(5), String.valueOf(dailyData.getNewUsers()));
+            }
+
+            workbook.write(outputStream);
+            outputStream.flush();
+        } catch (IOException e) {
+            throw new RuntimeException("导出运营数据报表失败", e);
+        }
+    }
+
+    private void setCellValue(Cell cell, String value) {
+        cell.setCellValue(value);
+    }
+
+    private String formatAmount(Double value) {
+        DecimalFormat decimalFormat = new DecimalFormat("0.00");
+        return decimalFormat.format(value == null ? 0.0 : value);
+    }
+
+    private String formatPercent(Double value) {
+        DecimalFormat decimalFormat = new DecimalFormat("0.00%");
+        return decimalFormat.format(value == null ? 0.0 : value);
     }
 }
