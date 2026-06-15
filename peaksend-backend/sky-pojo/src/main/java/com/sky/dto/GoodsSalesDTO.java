@@ -7,14 +7,22 @@ import lombok.NoArgsConstructor;
 
 import java.io.Serializable;
 
+/**
+ * 商品销量数据
+ */
 @Data
-@AllArgsConstructor
-@NoArgsConstructor
 @Builder
+@NoArgsConstructor
+@AllArgsConstructor
 public class GoodsSalesDTO implements Serializable {
-    //商品名称
+
+    /**
+     * 商品名称
+     */
     private String name;
 
-    //销量
+    /**
+     * 销量
+     */
     private Integer number;
 }

@@ -19,46 +19,46 @@ import java.time.LocalDate;
 
 @RestController
 @RequestMapping("/admin/report")
-@Api(tags = "数据统计相关接口")
 @Slf4j
+@Api(tags = "数据统计相关接口")
 public class ReportController {
 
     @Resource
     private ReportService reportService;
 
     @GetMapping("/turnoverStatistics")
-    @ApiOperation("营业额统计")
+    @ApiOperation("营业额统计接口")
     public Result<TurnoverReportVO> turnoverStatistics(
             @DateTimeFormat(pattern = "yyyy-MM-dd") LocalDate begin,
             @DateTimeFormat(pattern = "yyyy-MM-dd") LocalDate end) {
-        log.info("营业额数据统计：{},{}", begin, end);
+        log.info("营业额统计，begin: {}, end: {}", begin, end);
         return Result.success(reportService.getTurnoverStatistics(begin, end));
     }
 
     @GetMapping("/userStatistics")
-    @ApiOperation("用户统计")
+    @ApiOperation("用户统计接口")
     public Result<UserReportVO> userStatistics(
             @DateTimeFormat(pattern = "yyyy-MM-dd") LocalDate begin,
             @DateTimeFormat(pattern = "yyyy-MM-dd") LocalDate end) {
-        log.info("用户数据统计：{},{}", begin, end);
+        log.info("用户统计，begin: {}, end: {}", begin, end);
         return Result.success(reportService.getUserStatistics(begin, end));
     }
 
     @GetMapping("/ordersStatistics")
-    @ApiOperation("订单统计")
+    @ApiOperation("订单统计接口")
     public Result<OrderReportVO> ordersStatistics(
             @DateTimeFormat(pattern = "yyyy-MM-dd") LocalDate begin,
             @DateTimeFormat(pattern = "yyyy-MM-dd") LocalDate end) {
-        log.info("订单数据统计：{},{}", begin, end);
-        return Result.success(reportService.getOrderStatistics(begin, end));
+        log.info("订单统计，begin: {}, end: {}", begin, end);
+        return Result.success(reportService.getOrdersStatistics(begin, end));
     }
 
     @GetMapping("/top10")
-    @ApiOperation("销量排名top10")
+    @ApiOperation("查询销量排名top10接口")
     public Result<SalesTop10ReportVO> top10(
             @DateTimeFormat(pattern = "yyyy-MM-dd") LocalDate begin,
             @DateTimeFormat(pattern = "yyyy-MM-dd") LocalDate end) {
-        log.info("销量排名top10：{},{}", begin, end);
+        log.info("销量 Top10 统计，begin: {}, end: {}", begin, end);
         return Result.success(reportService.getSalesTop10(begin, end));
     }
 }

@@ -4,12 +4,11 @@ import com.sky.dto.GoodsSalesDTO;
 import com.sky.entity.Orders;
 import com.sky.mapper.OrdersMapper;
 import com.sky.mapper.UserMapper;
+import com.sky.vo.SalesTop10ReportVO;
 import com.sky.service.ReportService;
 import com.sky.vo.OrderReportVO;
-import com.sky.vo.SalesTop10ReportVO;
 import com.sky.vo.TurnoverReportVO;
 import com.sky.vo.UserReportVO;
-import org.apache.commons.lang3.StringUtils;
 import org.springframework.stereotype.Service;
 
 import javax.annotation.Resource;
@@ -31,119 +30,157 @@ public class ReportServiceImpl implements ReportService {
     @Resource
     private UserMapper userMapper;
 
+    //这 4 个方法表面不同，骨架其实只有两种
+    //- 第一种骨架： 按天循环统计
+    //  - 营业额统计 getTurnoverStatistics
+    //  - 用户统计 getUserStatistics
+    //  - 订单统计 getOrdersStatistics
+    //- 第二种骨架： 整段时间直接聚合
+    //  - 销量 Top10 getSalesTop10
+
     @Override
     public TurnoverReportVO getTurnoverStatistics(LocalDate begin, LocalDate end) {
-        List<LocalDate> dateList = buildDateList(begin, end);
-        List<Double> turnoverList = new ArrayList<>();
+        List<String> dateList = new ArrayList<>();// 这个列表装的是横轴日期，比如：
+        List<String> turnoverList = new ArrayList<>();// 这个列表装的是纵轴营业额，比如：
 
-        for (LocalDate date : dateList) {
+        LocalDate current = begin;
+        while (!current.isAfter(end)) {
+            //- 不要一口气算整个区间。
+            //- 而是把 begin ~ end 拆成一天一天。
+            //- 每一天单独查一次。
+            //- 再把每天结果拼成前端折线图能直接吃的数据。
+            dateList.add(current.toString());
+            // - 先把当天日期记下来, 因为前端画图不仅要数值，还要横轴日期
+
+            LocalDateTime beginTime = current.atStartOfDay();
+            //这句把就是把 2026-06-02 变成：2026-06-02 00:00:00
+            LocalDateTime endTime = current.atTime(LocalTime.MAX);
+            //这句把就是把 2026-06-02 变成：2026-06-02 23:59:59.999999999
+
             Map<String, Object> map = new HashMap<>();
-            map.put("begin", LocalDateTime.of(date, LocalTime.MIN));
-            map.put("end", LocalDateTime.of(date, LocalTime.MAX));
+            map.put("begin", beginTime);
+            map.put("end", endTime);
             map.put("status", Orders.COMPLETED);
-            Double turnover = ordersMapper.sumByMap(map);
-            turnoverList.add(turnover == null ? 0.0 : turnover);
+            //- 我要统计这一天的数据
+            //- 时间范围就是今天的开始到今天的结束
+            //- 而且只统计 已完成订单
+
+            Double turnover = ordersMapper.sumByMap(map);// 真正查数据库
+            turnoverList.add(String.valueOf(turnover == null ? 0.0 : turnover));
+            //- 如果某一天没有完成订单
+            //- sum(amount) 结果不是 0 而是 null
+            //  所以这里必须手动兜底成 0.0 ，否则前端图表数据会出问题。
+
+            current = current.plusDays(1);
+            //- 今天统计完了，指针往后挪一天
+            //- 继续下一天， 直到整段时间跑完
         }
 
         return TurnoverReportVO.builder()
-                .dateList(StringUtils.join(dateList, ","))
-                .turnoverList(StringUtils.join(turnoverList, ","))
+                .dateList(String.join(",", dateList))
+                .turnoverList(String.join(",", turnoverList))
                 .build();
     }
 
     @Override
     public UserReportVO getUserStatistics(LocalDate begin, LocalDate end) {
-        List<LocalDate> dateList = buildDateList(begin, end);
-        List<Integer> totalUserList = new ArrayList<>();
-        List<Integer> newUserList = new ArrayList<>();
+        List<String> dateList = new ArrayList<>();
+        List<String> newUserList = new ArrayList<>();// 装每天新增用户数
+        List<String> totalUserList = new ArrayList<>();// 装截止当天的累计用户总数
 
-        for (LocalDate date : dateList) {
-            LocalDateTime beginTime = LocalDateTime.of(date, LocalTime.MIN);
-            LocalDateTime endTime = LocalDateTime.of(date, LocalTime.MAX);
+        LocalDate current = begin;
+        while (!current.isAfter(end)) {
+            dateList.add(current.toString());
 
-            Map<String, Object> totalMap = new HashMap<>();
-            totalMap.put("end", endTime);
-            Integer totalUser = userMapper.countByMap(totalMap);
+            LocalDateTime beginTime = current.atStartOfDay();
+            LocalDateTime endTime = current.atTime(LocalTime.MAX);
 
-            Map<String, Object> newMap = new HashMap<>();
-            newMap.put("begin", beginTime);
-            newMap.put("end", endTime);
-            Integer newUser = userMapper.countByMap(newMap);
+            Map<String, Object> map = new HashMap<>();
+            map.put("begin", beginTime);
+            map.put("end", endTime);
+            Integer newUsers = userMapper.countByMap(map);
+            newUserList.add(String.valueOf(newUsers == null ? 0 : newUsers));
 
-            totalUserList.add(totalUser == null ? 0 : totalUser);
-            newUserList.add(newUser == null ? 0 : newUser);
+            map.put("begin", null);
+            Integer totalUsers = userMapper.countByMap(map);
+            totalUserList.add(String.valueOf(totalUsers == null ? 0 : totalUsers));
+
+            current = current.plusDays(1);
         }
 
         return UserReportVO.builder()
-                .dateList(StringUtils.join(dateList, ","))
-                .totalUserList(StringUtils.join(totalUserList, ","))
-                .newUserList(StringUtils.join(newUserList, ","))
+                .dateList(String.join(",", dateList))
+                .newUserList(String.join(",", newUserList))
+                .totalUserList(String.join(",", totalUserList))
                 .build();
     }
 
     @Override
-    public OrderReportVO getOrderStatistics(LocalDate begin, LocalDate end) {
-        List<LocalDate> dateList = buildDateList(begin, end);
-        List<Integer> orderCountList = new ArrayList<>();
-        List<Integer> validOrderCountList = new ArrayList<>();
+    public OrderReportVO getOrdersStatistics(LocalDate begin, LocalDate end) {
+        List<String> dateList = new ArrayList<>();
+        List<String> orderCountList = new ArrayList<>();
+        List<String> validOrderCountList = new ArrayList<>();
 
-        for (LocalDate date : dateList) {
-            LocalDateTime beginTime = LocalDateTime.of(date, LocalTime.MIN);
-            LocalDateTime endTime = LocalDateTime.of(date, LocalTime.MAX);
+        Integer totalOrderCount = 0;
+        Integer validOrderCount = 0;
 
-            Integer orderCount = getOrderCount(beginTime, endTime, null);
-            Integer validOrderCount = getOrderCount(beginTime, endTime, Orders.COMPLETED);
+        LocalDate current = begin;
+        while (!current.isAfter(end)) {
+            dateList.add(current.toString());
 
-            orderCountList.add(orderCount);
-            validOrderCountList.add(validOrderCount);
+            LocalDateTime beginTime = current.atStartOfDay();
+            LocalDateTime endTime = current.atTime(LocalTime.MAX);
+
+            Map<String, Object> map = new HashMap<>();
+            map.put("begin", beginTime);
+            map.put("end", endTime);
+
+            Integer orderCount = ordersMapper.countByMap(map);
+            orderCount = orderCount == null ? 0 : orderCount;
+            orderCountList.add(String.valueOf(orderCount));
+            totalOrderCount += orderCount;
+
+            map.put("status", Orders.COMPLETED);
+            Integer dailyValidOrderCount = ordersMapper.countByMap(map);
+            dailyValidOrderCount = dailyValidOrderCount == null ? 0 : dailyValidOrderCount;
+            validOrderCountList.add(String.valueOf(dailyValidOrderCount));
+            validOrderCount += dailyValidOrderCount;
+
+            current = current.plusDays(1);
         }
 
-        Integer totalOrderCount = orderCountList.stream().reduce(0, Integer::sum);
-        Integer validOrderCount = validOrderCountList.stream().reduce(0, Integer::sum);
-        Double orderCompletionRate = totalOrderCount == 0 ? 0.0 : validOrderCount.doubleValue() / totalOrderCount;
+        Double orderCompletionRate = 0.0;
+        if (totalOrderCount > 0) {
+            orderCompletionRate = validOrderCount.doubleValue() / totalOrderCount;
+        }
 
         return OrderReportVO.builder()
-                .dateList(StringUtils.join(dateList, ","))
-                .orderCountList(StringUtils.join(orderCountList, ","))
-                .validOrderCountList(StringUtils.join(validOrderCountList, ","))
+                .dateList(String.join(",", dateList))
                 .totalOrderCount(totalOrderCount)
                 .validOrderCount(validOrderCount)
                 .orderCompletionRate(orderCompletionRate)
+                .orderCountList(String.join(",", orderCountList))
+                .validOrderCountList(String.join(",", validOrderCountList))
                 .build();
     }
 
     @Override
     public SalesTop10ReportVO getSalesTop10(LocalDate begin, LocalDate end) {
-        LocalDateTime beginTime = LocalDateTime.of(begin, LocalTime.MIN);
-        LocalDateTime endTime = LocalDateTime.of(end, LocalTime.MAX);
+        LocalDateTime beginTime = begin.atStartOfDay();
+        LocalDateTime endTime = end.atTime(LocalTime.MAX);
 
         List<GoodsSalesDTO> salesTop10 = ordersMapper.getSalesTop10(beginTime, endTime);
-        List<String> names = salesTop10.stream().map(GoodsSalesDTO::getName).collect(Collectors.toList());
-        List<Integer> numbers = salesTop10.stream().map(GoodsSalesDTO::getNumber).collect(Collectors.toList());
+
+        String nameList = salesTop10.stream()
+                .map(GoodsSalesDTO::getName)
+                .collect(Collectors.joining(","));
+        String numberList = salesTop10.stream()
+                .map(item -> String.valueOf(item.getNumber()))
+                .collect(Collectors.joining(","));
 
         return SalesTop10ReportVO.builder()
-                .nameList(StringUtils.join(names, ","))
-                .numberList(StringUtils.join(numbers, ","))
+                .nameList(nameList)
+                .numberList(numberList)
                 .build();
-    }
-
-    private Integer getOrderCount(LocalDateTime begin, LocalDateTime end, Integer status) {
-        Map<String, Object> map = new HashMap<>();
-        map.put("begin", begin);
-        map.put("end", end);
-        map.put("status", status);
-        Integer count = ordersMapper.countByMap(map);
-        return count == null ? 0 : count;
-    }
-
-    private List<LocalDate> buildDateList(LocalDate begin, LocalDate end) {
-        List<LocalDate> dateList = new ArrayList<>();
-        LocalDate current = begin;
-        dateList.add(current);
-        while (!current.equals(end)) {
-            current = current.plusDays(1);
-            dateList.add(current);
-        }
-        return dateList;
     }
 }

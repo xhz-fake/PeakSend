@@ -140,11 +140,11 @@ public interface OrdersMapper {
     Double sumByMap(Map<String, Object> map);
 
     /**
-     * 统计指定时间范围内销量 top10
+     * 统计销量 Top10
      *
-     * @param begin 起始时间
+     * @param begin 开始时间
      * @param end   结束时间
-     * @return 商品销量列表
+     * @return Top10 销量数据
      */
     @Select({
             "select od.name as name, sum(od.number) as number",
