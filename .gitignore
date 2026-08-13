@@ -9,3 +9,7 @@ FrontRunEnv/nginx-1.20.2/logs/
 
 # uni-app / 小程序编译产物
 miniProgram/project-rjwm-weixin-uniapp-develop-wsy/unpackage/
+
+# Docker runtime data
+docker/mysql/data/
+docker/redis/data/
