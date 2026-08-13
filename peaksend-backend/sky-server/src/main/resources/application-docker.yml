@@ -1,0 +1,28 @@
+server:
+  servlet:
+    encoding:
+      charset: UTF-8
+      enabled: true
+      force: true
+
+sky:
+  datasource:
+    driver-class-name: com.mysql.cj.jdbc.Driver
+    host: ${DB_HOST:mysql}
+    port: ${DB_PORT:3306}
+    database: ${DB_NAME:sky_take_out}
+    username: ${DB_USERNAME:root}
+    password: ${DB_PASSWORD:060723}
+  local-upload:
+    base-path: ${LOCAL_UPLOAD_BASE_PATH:/app/uploads}
+  wechat:
+    appid: ${WECHAT_APPID:demo-appid}
+    secret: ${WECHAT_SECRET:demo-secret}
+    pay-mode: ${WECHAT_PAY_MODE:mock}
+
+spring:
+  redis:
+    host: ${REDIS_HOST:redis}
+    port: ${REDIS_PORT:6379}
+    password: ${REDIS_PASSWORD:060723}
+    database: ${REDIS_DATABASE:0}

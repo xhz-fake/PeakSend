@@ -1,0 +1,76 @@
+# 本文件负责解决的就是： MySQL、Redis、后端、Nginx 这四个东西怎么一起被拉起来，并且彼此连通
+services:
+  mysql:
+    #它对应的是你以前本机手工装的 MySQL。
+    image: mysql:8.0
+    container_name: peaksend-mysql
+    restart: unless-stopped
+    environment:
+      MYSQL_ROOT_PASSWORD: "060723"
+      MYSQL_DATABASE: sky_take_out
+      TZ: Asia/Shanghai
+    command:
+      - --default-authentication-plugin=mysql_native_password
+      - --character-set-server=utf8mb4
+      - --collation-server=utf8mb4_general_ci
+    ports:
+      - "3307:3306"
+    volumes:
+      - ./docker/mysql/data:/var/lib/mysql
+      - ./数据库/sky.sql:/docker-entrypoint-initdb.d/01-init.sql:ro
+
+  redis:
+    #它对应的是你以前本机手工开的 Redis。
+    image: redis:6.2-alpine
+    container_name: peaksend-redis
+    restart: unless-stopped
+    command: ["redis-server", "--requirepass", "060723"]
+    ports:
+      - "6379:6379"
+    volumes:
+      - ./docker/redis/data:/data
+
+  backend:
+    #这一块的核心意思就是：后端以后不再默认认为数据库和 Redis 在你本机上，而是认为它们是 compose 里另外两个服务
+    build:
+      context: ./peaksend-backend
+      dockerfile: Dockerfile
+    container_name: peaksend-backend
+    restart: unless-stopped
+    depends_on:
+      - mysql
+      - redis
+    environment:
+      SPRING_PROFILES_ACTIVE: docker
+      DB_HOST: mysql
+      DB_PORT: 3306
+      DB_NAME: sky_take_out
+      DB_USERNAME: root
+      DB_PASSWORD: "060723"
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+      REDIS_PASSWORD: "060723"
+      LOCAL_UPLOAD_BASE_PATH: /app/uploads
+      WECHAT_APPID: "wxbfdcbbe6d7823895"
+      WECHAT_SECRET: "df96866efe9a6fce7e62a56633818b95"
+      WECHAT_PAY_MODE: mock
+      TZ: Asia/Shanghai
+    ports:
+      - "8080:8080"
+    volumes:
+      - ./uploads:/app/uploads
+
+  nginx:
+    #  继续保留你当前管理端页面访问方式，同时把 /api/ 、 /user/ 、 /ws/ 这些请求转发给后端容器
+    #  所以它对应的是你以前本机单独跑的 Nginx
+
+    image: nginx:1.27-alpine
+    container_name: peaksend-nginx
+    restart: unless-stopped
+    depends_on:
+      - backend
+    ports:
+      - "8081:8081"
+    volumes:
+      - ./docker/nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+      - ./FrontRunEnv/nginx-1.20.2/html:/usr/share/nginx/html:ro
