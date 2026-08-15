@@ -19,6 +19,13 @@ sky:
     appid: ${WECHAT_APPID:demo-appid}
     secret: ${WECHAT_SECRET:demo-secret}
     pay-mode: ${WECHAT_PAY_MODE:mock}
+  cache:
+    default-ttl: 30m
+    category-ttl: 20m
+    dish-ttl: 30m
+    setmeal-ttl: 35m
+    address-book-by-id-ttl: 2m
+    report-ttl: 5m
 
 spring:
   redis:

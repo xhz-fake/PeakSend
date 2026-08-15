@@ -9,6 +9,7 @@ import com.sky.vo.UserReportVO;
 import io.swagger.annotations.Api;
 import io.swagger.annotations.ApiOperation;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -29,6 +30,11 @@ public class ReportController {
 
     @GetMapping("/turnoverStatistics")
     @ApiOperation("营业额统计接口")
+    @Cacheable(cacheNames = "turnoverReportCache", key = "#begin + ':' + #end")// 报表缓存缓存的是“某个时间区间最终算出来的统计结果”
+    //从“同一个时间区间每次都重新按天查库统计”，变成了：
+    //- 第一次：计算结果并写入 Redis
+    //- 第二次：直接命中 turnoverReportCache::begin:end
+
     public Result<TurnoverReportVO> turnoverStatistics(
             @DateTimeFormat(pattern = "yyyy-MM-dd") LocalDate begin,
             @DateTimeFormat(pattern = "yyyy-MM-dd") LocalDate end) {
@@ -38,6 +44,7 @@ public class ReportController {
 
     @GetMapping("/userStatistics")
     @ApiOperation("用户统计接口")
+    @Cacheable(cacheNames = "userReportCache", key = "#begin + ':' + #end")
     public Result<UserReportVO> userStatistics(
             @DateTimeFormat(pattern = "yyyy-MM-dd") LocalDate begin,
             @DateTimeFormat(pattern = "yyyy-MM-dd") LocalDate end) {
@@ -47,6 +54,7 @@ public class ReportController {
 
     @GetMapping("/ordersStatistics")
     @ApiOperation("订单统计接口")
+    @Cacheable(cacheNames = "orderReportCache", key = "#begin + ':' + #end")
     public Result<OrderReportVO> ordersStatistics(
             @DateTimeFormat(pattern = "yyyy-MM-dd") LocalDate begin,
             @DateTimeFormat(pattern = "yyyy-MM-dd") LocalDate end) {
@@ -56,6 +64,7 @@ public class ReportController {
 
     @GetMapping("/top10")
     @ApiOperation("查询销量排名top10接口")
+    @Cacheable(cacheNames = "salesTop10ReportCache", key = "#begin + ':' + #end")
     public Result<SalesTop10ReportVO> top10(
             @DateTimeFormat(pattern = "yyyy-MM-dd") LocalDate begin,
             @DateTimeFormat(pattern = "yyyy-MM-dd") LocalDate end) {

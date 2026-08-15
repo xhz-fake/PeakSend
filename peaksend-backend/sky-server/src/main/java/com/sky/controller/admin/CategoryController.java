@@ -10,6 +10,7 @@ import io.swagger.annotations.Api;
 import io.swagger.annotations.ApiOperation;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.DeleteMapping;
@@ -42,10 +43,13 @@ public class CategoryController {
      */
     @PostMapping
     @ApiOperation("新增分类")
+    @CacheEvict(cacheNames = "categoryCache", allEntries = true)//管理端写操作后，必须把指定缓存删掉。
     public Result<String> save(@RequestBody CategoryDTO categoryDTO) {
         log.info("新增分类：{}", categoryDTO);
         categoryService.save(categoryDTO);
         return Result.success();
+        //先执行原来的业务逻辑，比如改数据库;
+        //数据库改成功后，把 categoryCache 相关缓存删掉;
     }
 
     /**
@@ -85,6 +89,7 @@ public class CategoryController {
      */
     @PostMapping("/status/{status}")
     @ApiOperation("启用禁用分类")
+    @CacheEvict(cacheNames = "categoryCache", allEntries = true)
     public Result<String> startOrStop(@PathVariable Integer status, @RequestParam Long id) {
         log.info("启用禁用分类：status={}, id={}", status, id);
         categoryService.startOrStop(status, id);
@@ -99,6 +104,7 @@ public class CategoryController {
      */
     @PutMapping
     @ApiOperation("修改分类")
+    @CacheEvict(cacheNames = "categoryCache", allEntries = true)
     public Result<String> update(@RequestBody CategoryDTO categoryDTO) {
         log.info("修改分类：{}", categoryDTO);
         categoryService.update(categoryDTO);
@@ -113,6 +119,7 @@ public class CategoryController {
      */
     @DeleteMapping
     @ApiOperation("根据id删除分类")
+    @CacheEvict(cacheNames = "categoryCache", allEntries = true)
     public Result<String> delete(Long id) {
         log.info("根据id删除分类：id={}", id);
         categoryService.deleteById(id);
