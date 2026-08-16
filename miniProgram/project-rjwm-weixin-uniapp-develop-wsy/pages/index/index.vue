@@ -45,6 +45,13 @@
         </view>
       </view>
       <!-- end -->
+      <view class="flash-sale-banner" @click="goFlashSale">
+        <view>
+          <view class="banner-title">限量套餐活动</view>
+          <view class="banner-desc">查看活动库存、抢购套餐和我的抢购记录</view>
+        </view>
+        <view class="banner-btn">去抢购</view>
+      </view>
       <!-- 菜单列表 -->
       <view class="restaurant_menu_list" v-if="shopStatus === 1">
         <view class="type_list">
@@ -178,4 +185,34 @@
 }
 
 /* #endif */
+
+.flash-sale-banner {
+  margin: 20rpx 24rpx 0;
+  padding: 24rpx;
+  border-radius: 24rpx;
+  background: linear-gradient(135deg, #ffefe5, #ffd7c2);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.banner-title {
+  font-size: 30rpx;
+  font-weight: 600;
+  color: #222;
+}
+
+.banner-desc {
+  margin-top: 8rpx;
+  font-size: 24rpx;
+  color: #666;
+}
+
+.banner-btn {
+  padding: 14rpx 24rpx;
+  border-radius: 999rpx;
+  background: #ff6b35;
+  color: #fff;
+  font-size: 24rpx;
+}
 </style>

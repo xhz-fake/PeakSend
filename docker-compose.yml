@@ -18,6 +18,7 @@ services:
     volumes:
       - ./docker/mysql/data:/var/lib/mysql
       - ./数据库/sky.sql:/docker-entrypoint-initdb.d/01-init.sql:ro
+      - ./数据库/day15_flash_sale.sql:/docker-entrypoint-initdb.d/02-day15-flash-sale.sql:ro
 
   redis:
     #它对应的是你以前本机手工开的 Redis。

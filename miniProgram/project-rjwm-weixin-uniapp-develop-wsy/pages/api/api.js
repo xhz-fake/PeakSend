@@ -372,3 +372,25 @@ export const queryOrdersCheckStatus = (params) =>
 		params
 	})
 
+// 查询当前可抢限量套餐活动
+export const getFlashSaleActivityList = (params) =>
+        request({
+                url: '/user/flashSaleSetmealActivity/list',
+                method: 'GET',
+                params
+        })
+
+// 抢购限量套餐活动
+export const seizeFlashSaleActivity = (activityId) =>
+        request({
+                url: `/user/flashSaleSetmealActivity/seize/${activityId}`,
+                method: 'POST'
+        })
+
+// 查询当前用户抢购记录
+export const getFlashSaleOrders = (params) =>
+        request({
+                url: '/user/flashSaleSetmealActivity/orders',
+                method: 'GET',
+                params
+        })

@@ -6,6 +6,13 @@ FROM maven:3.9.9-eclipse-temurin-8 AS builder
 WORKDIR /build
 #意思是：后面所有操作，默认都在 /build 这个目录里进行
 
+RUN apt-get update \
+    && apt-get install -y openjdk-17-jdk \
+    && rm -rf /var/lib/apt/lists/*
+
+ENV JAVA_HOME=/usr/lib/jvm/java-17-openjdk-amd64
+ENV PATH="${JAVA_HOME}/bin:${PATH}"
+
 COPY pom.xml ./
 COPY sky-common/pom.xml sky-common/pom.xml
 COPY sky-pojo/pom.xml sky-pojo/pom.xml
@@ -23,6 +30,13 @@ RUN mvn -pl sky-server -am clean package -DskipTests
 ## 第二阶段，真正运行
 FROM eclipse-temurin:8-jre
 WORKDIR /app
+
+RUN apt-get update \
+    && apt-get install -y openjdk-17-jre-headless \
+    && rm -rf /var/lib/apt/lists/*
+
+ENV JAVA_HOME=/usr/lib/jvm/java-17-openjdk-amd64
+ENV PATH="${JAVA_HOME}/bin:${PATH}"
 
 COPY --from=builder /build/sky-server/target/sky-server-1.0-SNAPSHOT.jar app.jar
 #意思是：从前面那个叫 builder 的阶段里，把打好的 jar 包复制到当前运行环境里，并改名成 app.jar

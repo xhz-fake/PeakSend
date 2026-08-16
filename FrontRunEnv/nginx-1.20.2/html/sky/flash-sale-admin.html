@@ -1,0 +1,490 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>限量套餐活动管理</title>
+  <style>
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: "Microsoft YaHei", sans-serif;
+      background: #f5f7fb;
+      color: #222;
+    }
+    .page {
+      max-width: 1180px;
+      margin: 0 auto;
+      padding: 24px;
+    }
+    .header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 20px;
+      gap: 12px;
+      flex-wrap: wrap;
+    }
+    .title {
+      font-size: 28px;
+      font-weight: 700;
+    }
+    .subtitle {
+      color: #666;
+      margin-top: 6px;
+      font-size: 14px;
+    }
+    .back-link {
+      text-decoration: none;
+      color: #ff6b35;
+      font-weight: 600;
+    }
+    .grid {
+      display: grid;
+      grid-template-columns: 340px 1fr;
+      gap: 20px;
+    }
+    .card {
+      background: #fff;
+      border-radius: 18px;
+      padding: 20px;
+      box-shadow: 0 12px 32px rgba(24, 36, 56, 0.08);
+      margin-bottom: 20px;
+    }
+    .card-title {
+      font-size: 18px;
+      font-weight: 700;
+      margin-bottom: 16px;
+    }
+    .field {
+      margin-bottom: 14px;
+    }
+    .field label {
+      display: block;
+      font-size: 13px;
+      color: #555;
+      margin-bottom: 8px;
+    }
+    .field input,
+    .field select {
+      width: 100%;
+      height: 42px;
+      border: 1px solid #d9e0ea;
+      border-radius: 10px;
+      padding: 0 12px;
+      background: #fff;
+      outline: none;
+    }
+    .row {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+    }
+    .actions {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+    button {
+      border: none;
+      border-radius: 10px;
+      padding: 10px 16px;
+      cursor: pointer;
+      font-weight: 600;
+    }
+    .primary {
+      background: #ff6b35;
+      color: #fff;
+    }
+    .secondary {
+      background: #eef2f8;
+      color: #333;
+    }
+    .status-bar {
+      margin-top: 14px;
+      padding: 10px 12px;
+      border-radius: 10px;
+      background: #fff3e8;
+      color: #a45112;
+      font-size: 13px;
+      min-height: 40px;
+    }
+    .table-wrap {
+      overflow-x: auto;
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+    }
+    th, td {
+      text-align: left;
+      padding: 12px 10px;
+      border-bottom: 1px solid #edf1f6;
+      font-size: 14px;
+      white-space: nowrap;
+    }
+    th {
+      color: #666;
+      font-weight: 600;
+      background: #fafbfd;
+    }
+    .pill {
+      display: inline-block;
+      padding: 4px 10px;
+      border-radius: 999px;
+      font-size: 12px;
+      font-weight: 700;
+    }
+    .pill.on {
+      background: #e8fff1;
+      color: #1f8a4c;
+    }
+    .pill.off {
+      background: #f2f4f7;
+      color: #667085;
+    }
+    .muted {
+      color: #667085;
+      font-size: 12px;
+    }
+    .link-btn {
+      color: #ff6b35;
+      background: transparent;
+      padding: 0;
+    }
+    @media (max-width: 900px) {
+      .grid {
+        grid-template-columns: 1fr;
+      }
+      .row {
+        grid-template-columns: 1fr;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="page">
+    <div class="header">
+      <div>
+        <div class="title">限量套餐活动管理</div>
+        <div class="subtitle">在页面里登录、创建活动、查看库存和启停状态，不再靠命令行发活动。</div>
+      </div>
+      <a class="back-link" href="/">返回原管理端</a>
+    </div>
+
+    <div class="grid">
+      <div>
+        <div class="card">
+          <div class="card-title">管理员登录</div>
+          <div class="field">
+            <label for="username">账号</label>
+            <input id="username" value="admin">
+          </div>
+          <div class="field">
+            <label for="password">密码</label>
+            <input id="password" type="password" value="123456">
+          </div>
+          <div class="actions">
+            <button class="primary" id="loginBtn">登录并加载数据</button>
+            <button class="secondary" id="logoutBtn">清空登录态</button>
+          </div>
+          <div class="status-bar" id="statusBar">未登录</div>
+        </div>
+
+        <div class="card">
+          <div class="card-title">创建活动</div>
+          <div class="field">
+            <label for="setmealSelect">选择套餐</label>
+            <select id="setmealSelect">
+              <option value="">请先登录并加载套餐</option>
+            </select>
+          </div>
+          <div class="field">
+            <label for="activityName">活动名称</label>
+            <input id="activityName" placeholder="例如：周末限量爆款套餐">
+          </div>
+          <div class="row">
+            <div class="field">
+              <label for="stock">活动库存</label>
+              <input id="stock" type="number" min="1" value="10">
+            </div>
+            <div class="field">
+              <label for="status">状态</label>
+              <select id="status">
+                <option value="1">启用</option>
+                <option value="0">停用</option>
+              </select>
+            </div>
+          </div>
+          <div class="row">
+            <div class="field">
+              <label for="startTime">开始时间</label>
+              <input id="startTime" type="datetime-local">
+            </div>
+            <div class="field">
+              <label for="endTime">结束时间</label>
+              <input id="endTime" type="datetime-local">
+            </div>
+          </div>
+          <div class="actions">
+            <button class="primary" id="createBtn">创建活动</button>
+            <button class="secondary" id="reloadBtn">刷新活动列表</button>
+          </div>
+        </div>
+      </div>
+
+      <div>
+        <div class="card">
+          <div class="card-title">活动列表</div>
+          <div class="muted" style="margin-bottom: 12px;">这里展示当前所有限量套餐活动。无抢购记录的脏测试活动可直接删除，已有抢购记录的活动只能继续保留并启停。</div>
+          <div class="table-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <th>ID</th>
+                  <th>活动名称</th>
+                  <th>套餐</th>
+                  <th>库存</th>
+                  <th>状态</th>
+                  <th>时间窗口</th>
+                  <th>操作</th>
+                </tr>
+              </thead>
+              <tbody id="activityTableBody">
+                <tr>
+                  <td colspan="7" class="muted">请先登录并加载数据</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const tokenKey = "flash_sale_admin_token";
+    const statusBar = document.getElementById("statusBar");
+    const setmealSelect = document.getElementById("setmealSelect");
+    const activityTableBody = document.getElementById("activityTableBody");
+
+    function getToken() {
+      return localStorage.getItem(tokenKey) || "";
+    }
+
+    function setToken(token) {
+      if (token) {
+        localStorage.setItem(tokenKey, token);
+      } else {
+        localStorage.removeItem(tokenKey);
+      }
+    }
+
+    function setStatus(message, isError = false) {
+      statusBar.textContent = message;
+      statusBar.style.background = isError ? "#fff1f0" : "#fff3e8";
+      statusBar.style.color = isError ? "#cf1322" : "#a45112";
+    }
+
+    function toBackendDateTime(value) {
+      return value ? value.replace("T", " ") : "";
+    }
+
+    function toDatetimeLocalValue(date = new Date()) {
+      const pad = (num) => String(num).padStart(2, "0");
+      return [
+        date.getFullYear(),
+        "-",
+        pad(date.getMonth() + 1),
+        "-",
+        pad(date.getDate()),
+        "T",
+        pad(date.getHours()),
+        ":",
+        pad(date.getMinutes()),
+      ].join("");
+    }
+
+    async function api(path, options = {}) {
+      const token = getToken();
+      const headers = Object.assign(
+        { "Content-Type": "application/json" },
+        options.headers || {}
+      );
+      if (token) {
+        headers.token = token;
+      }
+      const response = await fetch(path, Object.assign({}, options, { headers }));
+      const text = await response.text();
+      let data = {};
+      try {
+        data = text ? JSON.parse(text) : {};
+      } catch (error) {
+        throw new Error(`接口返回异常，HTTP ${response.status}`);
+      }
+      if (!response.ok || data.code !== 1) {
+        throw new Error(data.msg || `请求失败，HTTP ${response.status}`);
+      }
+      return data;
+    }
+
+    async function login() {
+      const username = document.getElementById("username").value.trim();
+      const password = document.getElementById("password").value.trim();
+      setStatus("正在登录...");
+      const data = await api("/api/employee/login", {
+        method: "POST",
+        body: JSON.stringify({ username, password }),
+        headers: {}
+      });
+      setToken(data.data.token);
+      setStatus("登录成功，正在加载套餐和活动数据...");
+      await Promise.all([loadSetmeals(), loadActivities()]);
+      setStatus("登录成功，活动管理页已就绪");
+    }
+
+    async function loadSetmeals() {
+      const data = await api("/api/setmeal/page?page=1&pageSize=100&status=1", {
+        method: "GET"
+      });
+      const records = (data.data && data.data.records) || [];
+      if (!records.length) {
+        setmealSelect.innerHTML = '<option value="">当前没有启用中的套餐</option>';
+        return;
+      }
+      setmealSelect.innerHTML = records.map((item) =>
+        `<option value="${item.id}">${item.id} - ${item.name} - ￥${Number(item.price || 0).toFixed(2)}</option>`
+      ).join("");
+    }
+
+    async function loadActivities() {
+      const data = await api("/api/flashSaleSetmealActivity/list", {
+        method: "GET"
+      });
+      const records = data.data || [];
+      if (!records.length) {
+        activityTableBody.innerHTML = '<tr><td colspan="7" class="muted">当前还没有活动</td></tr>';
+        return;
+      }
+      activityTableBody.innerHTML = records.map((item) => `
+        <tr>
+          <td>${item.id}</td>
+          <td>${item.activityName || "-"}</td>
+          <td>${item.setmealName || "-"}<div class="muted">ID: ${item.setmealId}</div></td>
+          <td>${item.stock}</td>
+          <td><span class="pill ${item.status === 1 ? "on" : "off"}">${item.status === 1 ? "启用" : "停用"}</span></td>
+          <td>${item.startTime}<div class="muted">${item.endTime}</div></td>
+          <td>
+            <button class="link-btn" onclick="toggleStatus(${item.id}, ${item.status === 1 ? 0 : 1})">
+              ${item.status === 1 ? "停用" : "启用"}
+            </button>
+            <button class="link-btn" onclick="deleteActivity(${item.id}, '${(item.activityName || "").replace(/'/g, "\\'")}')">
+              删除
+            </button>
+          </td>
+        </tr>
+      `).join("");
+    }
+
+    async function createActivity() {
+      const setmealId = Number(setmealSelect.value);
+      const activityName = document.getElementById("activityName").value.trim();
+      const stock = Number(document.getElementById("stock").value);
+      const status = Number(document.getElementById("status").value);
+      const startTime = toBackendDateTime(document.getElementById("startTime").value);
+      const endTime = toBackendDateTime(document.getElementById("endTime").value);
+      if (!setmealId || !activityName || !stock || !startTime || !endTime) {
+        setStatus("请先把套餐、活动名、库存和时间填完整", true);
+        return;
+      }
+      setStatus("正在创建活动...");
+      await api("/api/flashSaleSetmealActivity", {
+        method: "POST",
+        body: JSON.stringify({ setmealId, activityName, stock, status, startTime, endTime })
+      });
+      setStatus("活动创建成功，正在刷新列表...");
+      document.getElementById("activityName").value = "";
+      await loadActivities();
+      setStatus("活动创建成功");
+    }
+
+    async function toggleStatus(id, status) {
+      try {
+        setStatus(`正在${status === 1 ? "启用" : "停用"}活动 ${id}...`);
+        await api(`/api/flashSaleSetmealActivity/status/${status}?id=${id}`, {
+          method: "POST"
+        });
+        await loadActivities();
+        setStatus(`活动 ${id} 已${status === 1 ? "启用" : "停用"}`);
+      } catch (error) {
+        setStatus(error.message || "启停失败", true);
+      }
+    }
+
+    async function deleteActivity(id, name) {
+      const confirmed = window.confirm(`确认删除活动【${name || id}】吗？\n\n注意：只有没有抢购记录的活动才允许删除。`);
+      if (!confirmed) {
+        return;
+      }
+      try {
+        setStatus(`正在删除活动 ${id}...`);
+        await api(`/api/flashSaleSetmealActivity?id=${id}`, {
+          method: "DELETE"
+        });
+        await loadActivities();
+        setStatus(`活动 ${id} 已删除`);
+      } catch (error) {
+        setStatus(error.message || "删除失败", true);
+      }
+    }
+
+    window.toggleStatus = toggleStatus;
+    window.deleteActivity = deleteActivity;
+
+    document.getElementById("loginBtn").addEventListener("click", async () => {
+      try {
+        await login();
+      } catch (error) {
+        setStatus(error.message || "登录失败", true);
+      }
+    });
+
+    document.getElementById("logoutBtn").addEventListener("click", () => {
+      setToken("");
+      setStatus("已清空登录态");
+      setmealSelect.innerHTML = '<option value="">请先登录并加载套餐</option>';
+      activityTableBody.innerHTML = '<tr><td colspan="7" class="muted">请先登录并加载数据</td></tr>';
+    });
+
+    document.getElementById("createBtn").addEventListener("click", async () => {
+      try {
+        await createActivity();
+      } catch (error) {
+        setStatus(error.message || "创建活动失败", true);
+      }
+    });
+
+    document.getElementById("reloadBtn").addEventListener("click", async () => {
+      try {
+        setStatus("正在刷新套餐和活动数据...");
+        await Promise.all([loadSetmeals(), loadActivities()]);
+        setStatus("刷新完成");
+      } catch (error) {
+        setStatus(error.message || "刷新失败", true);
+      }
+    });
+
+    (function init() {
+      const now = new Date();
+      const end = new Date(now.getTime() + 2 * 60 * 60 * 1000);
+      document.getElementById("startTime").value = toDatetimeLocalValue(now);
+      document.getElementById("endTime").value = toDatetimeLocalValue(end);
+      if (getToken()) {
+        Promise.all([loadSetmeals(), loadActivities()])
+          .then(() => setStatus("已恢复登录态，页面数据已加载"))
+          .catch((error) => setStatus(error.message || "自动加载失败", true));
+      }
+    })();
+  </script>
+</body>
+</html>

@@ -93,6 +93,15 @@
         "navigationBarBackgroundColor": "#333333"
 
       }
+    },
+    {
+      "path": "pages/flashSale/index",
+      "style": {
+        "navigationStyle": "custom",
+        "navigationBarTitleText": "限量套餐活动",
+        "enablePullDownRefresh": true,
+        "navigationBarBackgroundColor": "#ff6b35"
+      }
     }
     ],
   "globalStyle": {

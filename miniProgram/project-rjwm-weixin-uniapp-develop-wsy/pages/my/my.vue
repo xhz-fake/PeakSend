@@ -24,6 +24,13 @@
       <view class="container">
         <!-- 地址和历史订单 -->
         <order-info @goAddress="goAddress" @goOrder="goOrder"></order-info>
+        <view class="flash-sale-entry" @click="goFlashSale">
+          <view>
+            <view class="flash-sale-title">限量套餐活动</view>
+            <view class="flash-sale-subtitle">查看当前活动和我的抢购记录</view>
+          </view>
+          <view class="flash-sale-arrow">></view>
+        </view>
         <!-- 最近订单 -->
         <!-- 最近订单title -->
         <view
@@ -150,6 +157,11 @@ export default {
         url: "/pages/historyOrder/historyOrder",
       });
     },
+    goFlashSale() {
+      uni.navigateTo({
+        url: "/pages/flashSale/index",
+      });
+    },
     async oneOrderFun(id) {
       let pages = getCurrentPages();
       let routeIndex = pages.findIndex(
@@ -207,6 +219,35 @@ export default {
     height: calc(100% - 194rpx);
   }
 }
+
+.flash-sale-entry {
+  margin: 20rpx 24rpx 0;
+  padding: 28rpx 24rpx;
+  border-radius: 20rpx;
+  background: linear-gradient(135deg, #fff1eb, #ffe1d6);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.flash-sale-title {
+  font-size: 30rpx;
+  font-weight: 600;
+  color: #222;
+}
+
+.flash-sale-subtitle {
+  margin-top: 8rpx;
+  font-size: 24rpx;
+  color: #666;
+}
+
+.flash-sale-arrow {
+  font-size: 32rpx;
+  color: #ff6b35;
+  font-weight: 600;
+}
+
 ::v-deep .uni-navbar--border {
   border-width: 0 !important;
 }

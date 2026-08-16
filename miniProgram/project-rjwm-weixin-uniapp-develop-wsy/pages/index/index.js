@@ -434,6 +434,11 @@ export default {
 				url: "/pages/order/index",
 			})
 		},
+                goFlashSale() {
+                        uni.navigateTo({
+                                url: "/pages/flashSale/index",
+                        })
+                },
 		// 加菜 - 添加菜品
 		async addDishAction(item, form) {
 			// 规格

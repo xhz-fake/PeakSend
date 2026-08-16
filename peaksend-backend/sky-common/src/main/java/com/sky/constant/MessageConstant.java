@@ -24,5 +24,17 @@ public class MessageConstant {
     public static final String DISH_BE_RELATED_BY_SETMEAL = "当前菜品关联了套餐,不能删除";
     public static final String ORDER_STATUS_ERROR = "订单状态错误";
     public static final String ORDER_NOT_FOUND = "订单不存在";
+    public static final String FLASH_SALE_ACTIVITY_NOT_FOUND = "限量套餐活动不存在";
+    public static final String FLASH_SALE_ACTIVITY_STATUS_INVALID = "限量套餐活动状态非法";
+    public static final String FLASH_SALE_ACTIVITY_TIME_INVALID = "限量套餐活动时间配置错误";
+    public static final String FLASH_SALE_ACTIVITY_STOCK_INVALID = "限量套餐库存配置错误";
+    public static final String FLASH_SALE_ACTIVITY_NOT_STARTED = "限量套餐活动尚未开始";
+    public static final String FLASH_SALE_ACTIVITY_ENDED = "限量套餐活动已结束";
+    public static final String FLASH_SALE_ACTIVITY_DISABLED = "限量套餐活动未启用";
+    public static final String FLASH_SALE_STOCK_NOT_ENOUGH = "限量套餐库存不足";
+    public static final String FLASH_SALE_DUPLICATE_ORDER = "同一用户不可重复抢购";
+    public static final String FLASH_SALE_SETMEAL_NOT_FOUND = "限量套餐对应的套餐不存在";
+    public static final String FLASH_SALE_REDIS_UNAVAILABLE = "Redis 未就绪，暂时无法抢购限量套餐";
+    public static final String FLASH_SALE_ACTIVITY_HAS_ORDER_RECORDS = "该活动已有抢购记录，不允许删除";
 
 }
