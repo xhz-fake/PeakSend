@@ -19,6 +19,11 @@ sky:
     setmeal-ttl: 35m
     address-book-by-id-ttl: 2m
     report-ttl: 5m
+  rocketmq:
+    enabled: false
+    order-delay-enabled: false
+    flash-sale-async-enabled: false
+    order-delay-level: 14
 
 spring:
   redis:
@@ -26,3 +31,8 @@ spring:
     port: 6379
     password: "060723"
     database: 0
+
+rocketmq:
+  name-server: ${ROCKETMQ_NAME_SERVER:127.0.0.1:9876}
+  producer:
+    group: peaksend-producer-group

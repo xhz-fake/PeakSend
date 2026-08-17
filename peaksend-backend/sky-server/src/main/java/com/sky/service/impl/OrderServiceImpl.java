@@ -23,6 +23,7 @@ import com.sky.mapper.AddressBookMapper;
 import com.sky.mapper.OrderDetailMapper;
 import com.sky.mapper.OrdersMapper;
 import com.sky.mapper.ShoppingCartMapper;
+import com.sky.mq.publisher.OrderDelayCloseMessagePublisher;
 import com.sky.mapper.UserMapper;
 import com.sky.properties.WeChatProperties;
 import com.sky.result.PageResult;
@@ -33,6 +34,7 @@ import com.sky.vo.OrderPaymentVO;
 import com.sky.vo.OrderSubmitVO;
 import com.sky.vo.OrderVO;
 import com.sky.websocket.WebSocketServer;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.BeanUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
@@ -46,6 +48,7 @@ import java.util.List;
 import java.util.stream.Collectors;
 
 @Service
+@Slf4j
 public class OrderServiceImpl implements OrderService {
 
     @Autowired
@@ -71,6 +74,9 @@ public class OrderServiceImpl implements OrderService {
 
     @Autowired
     private WebSocketServer webSocketServer;
+
+    @Autowired
+    private OrderDelayCloseMessagePublisher orderDelayCloseMessagePublisher;
 
     /**
      * 用户提交订单
@@ -142,6 +148,13 @@ public class OrderServiceImpl implements OrderService {
         orderDetailMapper.insertBatch(orderDetailList);
 
         shoppingCartMapper.deleteByUserId(userId);// 购物车不是历史记录区，它只是下单前的暂存区。
+
+        try {
+            // Day16 起下单后发送延迟消息，由消费者在到期时判断是否自动关单。
+            orderDelayCloseMessagePublisher.send(orders);
+        } catch (RuntimeException ex) {
+            log.warn("订单已创建，但发送延迟关单消息失败。orderId={}, orderNumber={}", orders.getId(), orders.getNumber(), ex);
+        }
 
         return OrderSubmitVO.builder()
                 .id(orders.getId())

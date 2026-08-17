@@ -31,6 +31,30 @@ services:
     volumes:
       - ./docker/redis/data:/data
 
+  rocketmq-namesrv:
+    image: apache/rocketmq:5.1.4
+    container_name: peaksend-rocketmq-namesrv
+    restart: unless-stopped
+    command: sh mqnamesrv
+    ports:
+      - "9876:9876"
+
+  rocketmq-broker:
+    image: apache/rocketmq:5.1.4
+    container_name: peaksend-rocketmq-broker
+    restart: unless-stopped
+    depends_on:
+      - rocketmq-namesrv
+    environment:
+      NAMESRV_ADDR: peaksend-rocketmq-namesrv:9876
+      JAVA_OPT_EXT: "-server -Xms256m -Xmx256m -Xmn128m"
+    command: sh mqbroker -n peaksend-rocketmq-namesrv:9876 -c /home/rocketmq/rocketmq-5.1.4/conf/broker.conf
+    ports:
+      - "10911:10911"
+      - "10909:10909"
+    volumes:
+      - ./docker/rocketmq/broker.conf:/home/rocketmq/rocketmq-5.1.4/conf/broker.conf:ro
+
   backend:
     #这一块的核心意思就是：后端以后不再默认认为数据库和 Redis 在你本机上，而是认为它们是 compose 里另外两个服务
     build:
@@ -41,6 +65,8 @@ services:
     depends_on:
       - mysql
       - redis
+      - rocketmq-namesrv
+      - rocketmq-broker
     environment:
       SPRING_PROFILES_ACTIVE: docker
       DB_HOST: mysql
@@ -51,6 +77,11 @@ services:
       REDIS_HOST: redis
       REDIS_PORT: 6379
       REDIS_PASSWORD: "060723"
+      ROCKETMQ_NAME_SERVER: peaksend-rocketmq-namesrv:9876
+      SKY_ROCKETMQ_ENABLED: "true"
+      SKY_ROCKETMQ_ORDER_DELAY_ENABLED: "true"
+      SKY_ROCKETMQ_ORDER_DELAY_LEVEL: "3"
+      SKY_ROCKETMQ_FLASH_SALE_ASYNC_ENABLED: "true"
       LOCAL_UPLOAD_BASE_PATH: /app/uploads
       WECHAT_APPID: "wxbfdcbbe6d7823895"
       WECHAT_SECRET: "df96866efe9a6fce7e62a56633818b95"

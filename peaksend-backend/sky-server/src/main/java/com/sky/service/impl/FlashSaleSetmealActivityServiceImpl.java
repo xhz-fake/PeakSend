@@ -10,6 +10,7 @@ import com.sky.exception.FlashSaleBusinessException;
 import com.sky.mapper.FlashSaleSetmealActivityMapper;
 import com.sky.mapper.FlashSaleSetmealOrderMapper;
 import com.sky.mapper.SetmealMapper;
+import com.sky.mq.publisher.FlashSaleOrderCreateMessagePublisher;
 import com.sky.service.FlashSaleSetmealActivityService;
 import com.sky.vo.FlashSaleSetmealSeizeVO;
 import com.sky.vo.SetmealVO;
@@ -71,6 +72,9 @@ public class FlashSaleSetmealActivityServiceImpl implements FlashSaleSetmealActi
     private StringRedisTemplate stringRedisTemplate;
     //- 管 Redis
     //- 负责执行 Lua、预热活动缓存、维护已抢用户集合、必要时回补 Redis
+
+    @Autowired
+    private FlashSaleOrderCreateMessagePublisher flashSaleOrderCreateMessagePublisher;
 
     @Override
     @Transactional
@@ -158,7 +162,6 @@ public class FlashSaleSetmealActivityServiceImpl implements FlashSaleSetmealActi
         //- Lua 负责抢资格
         //- Java 负责落数据库
         //- Java 失败时再回补 Redis
-
         Long userId = BaseContext.getCurrentId();
         //第1步：拿当前用户,“一人一单”后面就是拿这个 userId 去判断。
 
@@ -180,8 +183,6 @@ public class FlashSaleSetmealActivityServiceImpl implements FlashSaleSetmealActi
             //- 库存够不够
             //- 用户是否已经抢过
             //并且成功时还会顺手做两件事：- Redis 库存减 1, 用户写入已抢购集合
-
-
         } catch (DataAccessException ex) {
             log.warn("限量套餐抢购依赖的 Redis 不可用，activityId={}, userId={}", activityId, userId, ex);
             throw new FlashSaleBusinessException(MessageConstant.FLASH_SALE_REDIS_UNAVAILABLE);
@@ -190,46 +191,37 @@ public class FlashSaleSetmealActivityServiceImpl implements FlashSaleSetmealActi
         validateScriptResult(scriptResult);
 
         FlashSaleSetmealActivity activity = getActivityOrThrow(activityId);
+        String orderNo = buildOrderNo(activityId, userId);
+
+        if (flashSaleOrderCreateMessagePublisher.supportAsyncPersistence()) {
+            try {
+                // Day16 真正改动点，就在这里：
+                //第4步：Redis 抢到资格后，先发 MQ 消息，消息发成功就直接返回前端，MySQL 落库交给消费者
+                flashSaleOrderCreateMessagePublisher.send(activityId, userId, orderNo, LocalDateTime.now());
+                return FlashSaleSetmealSeizeVO.builder()
+                        .activityId(activityId)
+                        .setmealId(activity.getSetmealId())
+                        .orderNo(orderNo)
+                        .build();
+            } catch (RuntimeException ex) {// 发送 MQ 失败
+                compensateReservation(activityId, userId);
+                // 如果 MQ 发送失败要把 Redis 撤回去
+                log.warn("限量套餐抢购消息投递失败，已回补 Redis 预扣库存。activityId={}, userId={}", activityId, userId, ex);
+                throw new FlashSaleBusinessException("限量套餐抢购消息投递失败");
+            }
+        }
 
         try {
-            //第4步：Redis 抢到资格后，再落 MySQL
-
             //这里是第二段主链：
             //1. 先更新活动表库存
-            int affected = flashSaleSetmealActivityMapper.decreaseStock(activityId, LocalDateTime.now(), userId);
-            if (affected <= 0) {
-                throw new FlashSaleBusinessException(MessageConstant.FLASH_SALE_STOCK_NOT_ENOUGH);
-            }
-
-            String orderNo = buildOrderNo(activityId, userId);
-            //2. 再插入抢购记录表
-            flashSaleSetmealOrderMapper.insert(FlashSaleSetmealOrder.builder()
-                    .activityId(activityId)
-                    .userId(userId)
-                    .setmealId(activity.getSetmealId())
-                    .orderNo(orderNo)
-                    .activityName(activity.getActivityName())
-                    .setmealName(activity.getSetmealName())
-                    .setmealPrice(activity.getSetmealPrice())
-                    .setmealImage(activity.getSetmealImage())
-                    .status(FLASH_SALE_ORDER_SUCCESS)
-                    .createTime(LocalDateTime.now())
-                    .build());
-            //这里是第二段主链：
-
-
-            return FlashSaleSetmealSeizeVO.builder()
-                    .activityId(activityId)
-                    .setmealId(activity.getSetmealId())
-                    .orderNo(orderNo)
-                    .build();
+            return persistSeizeResult(activityId, userId, activity, orderNo);
         } catch (FlashSaleBusinessException ex) {
             //第5步：落库失败要回补 Redis
-
+            //
             //因为前面 Lua 已经把：
             //- Redis 库存扣了
             //- 用户集合写了
-
+            //
             //如果后面 MySQL 更新库存或插订单失败，而你什么都不做，就会出现：
             //- Redis 觉得这人抢成功了
             //- 数据库却没有成功订单
@@ -278,7 +270,6 @@ public class FlashSaleSetmealActivityServiceImpl implements FlashSaleSetmealActi
         //这个是兜底逻辑，意思是：
         //- 如果 Redis 里这场活动的数据没了
         //- 就从数据库再加载一次，重新预热回 Redis
-
         String activityKey = buildActivityKey(activityId);
         Boolean exists = stringRedisTemplate.hasKey(activityKey);
         if (Boolean.TRUE.equals(exists)) {
@@ -293,7 +284,6 @@ public class FlashSaleSetmealActivityServiceImpl implements FlashSaleSetmealActi
 
     private void syncActivityCache(FlashSaleSetmealActivity activity) {
         // 把 MySQL 里的活动状态，整形成 Redis 抢购专用数据。
-
         String activityKey = buildActivityKey(activity.getId());
         String activityUsersKey = buildActivityUsersKey(activity.getId());
         //先算出两个 key
@@ -381,7 +371,6 @@ public class FlashSaleSetmealActivityServiceImpl implements FlashSaleSetmealActi
             throw new FlashSaleBusinessException(MessageConstant.FLASH_SALE_STOCK_NOT_ENOUGH);
         }
         throw new FlashSaleBusinessException("限量套餐抢购执行失败");
-
         //Lua 负责返回状态码，Java 负责把状态码翻译成业务异常。
     }
 
@@ -420,6 +409,33 @@ public class FlashSaleSetmealActivityServiceImpl implements FlashSaleSetmealActi
 
     private String buildOrderNo(Long activityId, Long userId) {
         return "FS" + activityId + userId + System.currentTimeMillis();
+    }
+
+    private FlashSaleSetmealSeizeVO persistSeizeResult(Long activityId, Long userId,
+                                                       FlashSaleSetmealActivity activity, String orderNo) {
+        int affected = flashSaleSetmealActivityMapper.decreaseStock(activityId, LocalDateTime.now(), userId);
+        if (affected <= 0) {
+            throw new FlashSaleBusinessException(MessageConstant.FLASH_SALE_STOCK_NOT_ENOUGH);
+        }
+
+        flashSaleSetmealOrderMapper.insert(FlashSaleSetmealOrder.builder()
+                .activityId(activityId)
+                .userId(userId)
+                .setmealId(activity.getSetmealId())
+                .orderNo(orderNo)
+                .activityName(activity.getActivityName())
+                .setmealName(activity.getSetmealName())
+                .setmealPrice(activity.getSetmealPrice())
+                .setmealImage(activity.getSetmealImage())
+                .status(FLASH_SALE_ORDER_SUCCESS)
+                .createTime(LocalDateTime.now())
+                .build());
+
+        return FlashSaleSetmealSeizeVO.builder()
+                .activityId(activityId)
+                .setmealId(activity.getSetmealId())
+                .orderNo(orderNo)
+                .build();
     }
 
     private static DefaultRedisScript<Long> createSeizeScript() {
