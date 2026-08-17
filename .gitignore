@@ -1,5 +1,6 @@
 苍穹外卖资料/
 uploads/
+.m2/
 
 # Runtime and local temp files
 TmpLoadDish.java
