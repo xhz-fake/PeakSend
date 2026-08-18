@@ -17,6 +17,7 @@ COPY pom.xml ./
 COPY sky-common/pom.xml sky-common/pom.xml
 COPY sky-pojo/pom.xml sky-pojo/pom.xml
 COPY sky-server/pom.xml sky-server/pom.xml
+COPY sky-gateway/pom.xml sky-gateway/pom.xml
 
 COPY sky-common/src sky-common/src
 COPY sky-pojo/src sky-pojo/src

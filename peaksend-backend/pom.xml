@@ -16,6 +16,7 @@
         <module>sky-common</module>
         <module>sky-pojo</module>
         <module>sky-server</module>
+        <module>sky-gateway</module>
     </modules>
     <properties>
         <mybatis.spring>2.2.0</mybatis.spring>
@@ -31,9 +32,27 @@
         <jaxb-api>2.3.1</jaxb-api>
         <poi>3.16</poi>
         <rocketmq.spring.boot>2.2.3</rocketmq.spring.boot>
+        <spring.cloud>2021.0.5</spring.cloud>
+        <spring.cloud.alibaba>2021.0.5.0</spring.cloud.alibaba>
     </properties>
     <dependencyManagement>
         <dependencies>
+            <dependency>
+                <groupId>org.springframework.cloud</groupId>
+                <artifactId>spring-cloud-dependencies</artifactId>
+                <version>${spring.cloud}</version>
+                <type>pom</type>
+                <scope>import</scope>
+            </dependency>
+
+            <dependency>
+                <groupId>com.alibaba.cloud</groupId>
+                <artifactId>spring-cloud-alibaba-dependencies</artifactId>
+                <version>${spring.cloud.alibaba}</version>
+                <type>pom</type>
+                <scope>import</scope>
+            </dependency>
+
             <dependency>
                 <groupId>org.mybatis.spring.boot</groupId>
                 <artifactId>mybatis-spring-boot-starter</artifactId>

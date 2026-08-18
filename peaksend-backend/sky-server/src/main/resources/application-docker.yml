@@ -1,3 +1,5 @@
+#给 Docker 运行态专门准备的一份依赖寻址配置。
+
 server:
   servlet:
     encoding:
@@ -19,6 +21,7 @@ sky:
     appid: ${WECHAT_APPID:demo-appid}
     secret: ${WECHAT_SECRET:demo-secret}
     pay-mode: ${WECHAT_PAY_MODE:mock}
+    #Docker 环境下，不只是基础设施地址要切，运行态业务配置也可以通过环境变量喂进来。
   cache:
     default-ttl: 30m
     category-ttl: 20m
@@ -31,8 +34,18 @@ sky:
     order-delay-enabled: ${SKY_ROCKETMQ_ORDER_DELAY_ENABLED:false}
     flash-sale-async-enabled: ${SKY_ROCKETMQ_FLASH_SALE_ASYNC_ENABLED:false}
     order-delay-level: ${SKY_ROCKETMQ_ORDER_DELAY_LEVEL:14}
+    #RocketMQ 相关能力是否开启、延迟级别是多少，不写死在代码里，而是交给运行环境决定。
 
 spring:
+  cloud:
+    nacos:
+      discovery:
+        enabled: ${SKY_NACOS_DISCOVERY_ENABLED:false}
+        server-addr: ${NACOS_SERVER_ADDR:peaksend-nacos:8848}
+        #这就是 Day17 最核心的 backend 侧新增配置。
+        #它的意思是：
+        #1. 是否开启服务注册发现能力
+        #2. 如果开启，要去哪个 Nacos 注册中心报到
   redis:
     host: ${REDIS_HOST:redis}
     port: ${REDIS_PORT:6379}

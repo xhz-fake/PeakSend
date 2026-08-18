@@ -1,5 +1,17 @@
-# 本文件负责解决的就是： MySQL、Redis、后端、Nginx 这四个东西怎么一起被拉起来，并且彼此连通
+# 本文件负责解决的就是： MySQL、Redis、后端、Nginx 等等东西怎么一起被拉起来，并且彼此连通，是项目运行总装配图
 services:
+  #这份 compose ，其实已经能看到 3 层：
+  #### 第一层：基础数据层
+  #- mysql
+  #- redis
+  #### 第二层：基础设施层
+  #- rocketmq
+  #- nacos
+  #### 第三层：应用接入层
+  #- backend
+  #- gateway
+  #- nginx
+
   mysql:
     #它对应的是你以前本机手工装的 MySQL。
     image: mysql:8.0
@@ -30,6 +42,26 @@ services:
       - "6379:6379"
     volumes:
       - ./docker/redis/data:/data
+
+  nacos:
+    image: nacos/nacos-server:v2.2.3
+    container_name: peaksend-nacos
+    restart: unless-stopped
+    environment:
+      MODE: standalone
+      NACOS_AUTH_ENABLE: "false"
+      JVM_XMS: 256m
+      JVM_XMX: 256m
+      JVM_XMN: 128m
+    ports:
+      - "8848:8848"
+    healthcheck:
+      #别只看 nacos 容器“启动了”，还得看它“真的健康可用了”。
+      test: ["CMD-SHELL", "curl -fsS http://127.0.0.1:8848/nacos/v1/ns/operator/servers > /dev/null || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+      start_period: 20s
 
   rocketmq-namesrv:
     image: apache/rocketmq:5.1.4
@@ -63,11 +95,19 @@ services:
     container_name: peaksend-backend
     restart: unless-stopped
     depends_on:
-      - mysql
-      - redis
-      - rocketmq-namesrv
-      - rocketmq-broker
+      mysql:
+        condition: service_started
+      redis:
+        condition: service_started
+      rocketmq-namesrv:
+        condition: service_started
+      rocketmq-broker:
+        condition: service_started
+      nacos:
+        condition: service_healthy
     environment:
+      #这里其实是把“backend 启动时该连谁”全部喂进去。
+      #Compose 里服务名本身，就是 Docker 内部网络里的可访问地址，即容器内部按服务名通信
       SPRING_PROFILES_ACTIVE: docker
       DB_HOST: mysql
       DB_PORT: 3306
@@ -77,6 +117,8 @@ services:
       REDIS_HOST: redis
       REDIS_PORT: 6379
       REDIS_PASSWORD: "060723"
+      NACOS_SERVER_ADDR: peaksend-nacos:8848
+      SKY_NACOS_DISCOVERY_ENABLED: "true"
       ROCKETMQ_NAME_SERVER: peaksend-rocketmq-namesrv:9876
       SKY_ROCKETMQ_ENABLED: "true"
       SKY_ROCKETMQ_ORDER_DELAY_ENABLED: "true"
@@ -92,6 +134,27 @@ services:
     volumes:
       - ./uploads:/app/uploads
 
+  gateway:
+    build:
+      context: ./peaksend-backend
+      dockerfile: Dockerfile.gateway
+      #这个网关不是外部软件，而是我们项目里的一个 Java 模块。
+    container_name: peaksend-gateway
+    restart: unless-stopped
+    depends_on:
+      #- 没 Nacos，它没法做服务发现
+      #- 没 backend，它转发目标都没了
+      nacos:
+        condition: service_healthy
+      backend:
+        condition: service_started
+    environment:
+      NACOS_SERVER_ADDR: peaksend-nacos:8848
+      SKY_NACOS_DISCOVERY_ENABLED: "true"
+      TZ: Asia/Shanghai
+    ports:
+      - "8082:8082"
+
   nginx:
     #  继续保留你当前管理端页面访问方式，同时把 /api/ 、 /user/ 、 /ws/ 这些请求转发给后端容器
     #  所以它对应的是你以前本机单独跑的 Nginx
@@ -100,7 +163,7 @@ services:
     container_name: peaksend-nginx
     restart: unless-stopped
     depends_on:
-      - backend
+      - gateway
     ports:
       - "8081:8081"
     volumes:

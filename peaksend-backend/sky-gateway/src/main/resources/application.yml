@@ -1,0 +1,35 @@
+server:
+  port: 8082
+
+spring:
+  application:
+    name: sky-gateway
+  cloud:
+    nacos:
+      discovery:
+        enabled: ${SKY_NACOS_DISCOVERY_ENABLED:false}
+        server-addr: ${NACOS_SERVER_ADDR:127.0.0.1:8848}
+    gateway:
+      routes:
+        # 管理端仍走 /api/**，Gateway 在这里统一转到业务服务的 /admin/**
+        - id: admin-route
+          uri: lb://sky-server
+          predicates:
+            - Path=/api/**
+          filters:
+            - StripPrefix=1
+            - PrefixPath=/admin
+        - id: user-route
+          uri: lb://sky-server
+          predicates:
+            - Path=/user/**
+        - id: ws-route
+          uri: lb:ws://sky-server
+          predicates:
+            - Path=/ws/**
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,gateway

@@ -2,6 +2,8 @@ server:
   port: 8080
 
 spring:
+  application:
+    name: sky-server
   profiles:
     active: dev
   main:
