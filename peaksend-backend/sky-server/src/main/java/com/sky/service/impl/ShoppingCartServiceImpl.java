@@ -1,10 +1,10 @@
 package com.sky.service.impl;
 
+import com.sky.client.ProductClient;
 import com.sky.context.BaseContext;
 import com.sky.dto.ShoppingCartDTO;
 import com.sky.entity.ShoppingCart;
-import com.sky.mapper.DishMapper;
-import com.sky.mapper.SetmealMapper;
+import com.sky.exception.ShoppingCartBusinessException;
 import com.sky.mapper.ShoppingCartMapper;
 import com.sky.service.ShoppingCartService;
 import com.sky.vo.DishVO;
@@ -23,10 +23,7 @@ public class ShoppingCartServiceImpl implements ShoppingCartService {
     private ShoppingCartMapper shoppingCartMapper;
 
     @Autowired
-    private DishMapper dishMapper;
-
-    @Autowired
-    private SetmealMapper setmealMapper;
+    private ProductClient productClient;
 
     /**
      * 添加购物车
@@ -48,13 +45,30 @@ public class ShoppingCartServiceImpl implements ShoppingCartService {
         }
 
         if (shoppingCartDTO.getDishId() != null) {// 先判断这次加购的是不是菜品
-            DishVO dish = dishMapper.getById(shoppingCartDTO.getDishId());// 如果是菜品，就去菜品表把这道菜完整信息查出来
+            DishVO dish = productClient.getDishById(shoppingCartDTO.getDishId());// Day18 开始，这里改成跨服务查商品信息
+            //在业务里像调本地方法一样调用
+
+            //你以为你在调一个 Java 方法，实际上框架在背后做了这几步：
+            //发现你调的是 ProductClient
+            //发现它标了 @FeignClient(name = "product-service")于是去找名叫 product-service 的服务实例
+
+            //组装 HTTP 请求：
+            //GET /rpc/products/dishes/{id}
+            //发给 product-service
+            //把返回 JSON 反序列化成 DishVO
+
+            if (dish == null) {
+                throw new ShoppingCartBusinessException("菜品不存在，无法加入购物车");
+            }
             shoppingCart.setName(dish.getName());
             shoppingCart.setImage(dish.getImage());
             shoppingCart.setAmount(dish.getPrice());
             //确定类型后，后端还要去菜品表或套餐表查询名称、图片、价格等完整信息，因为购物车表落库时不能只保存一个 id。
         } else {// 如果不是菜品，那就是套餐
-            SetmealVO setmeal = setmealMapper.getById(shoppingCartDTO.getSetmealId());
+            SetmealVO setmeal = productClient.getSetmealById(shoppingCartDTO.getSetmealId());
+            if (setmeal == null) {
+                throw new ShoppingCartBusinessException("套餐不存在，无法加入购物车");
+            }
             shoppingCart.setName(setmeal.getName());
             shoppingCart.setImage(setmeal.getImage());
             shoppingCart.setAmount(setmeal.getPrice());

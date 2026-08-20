@@ -436,6 +436,22 @@ Day16 当前完成情况（更新于 2026-08-17）：
 - 你可以开始真正讲“为什么这样拆，而不是那样拆”
 - 也能避免把时间浪费在过宽的服务拆分和重复搬代码上
 
+当前落地进展（Day18 第一阶段）：
+
+- 已新增独立 `product-service` 模块，作为 Day18 第一刀的最小商品服务
+- 已在 `sky-server` 接入 `OpenFeign`
+- 已把购物车加购链路中“按 id 查询商品信息”的动作改成：
+  - `sky-server -> Feign -> product-service`
+- 已补齐 `Dockerfile.product` 与 `docker-compose.yml` 中的 `product-service` 编排
+- 已完成后端全模块构建通过
+- 当前尚未补完运行态接口验证，原因是本机 Docker daemon 未启动
+
+当前阶段结论：
+
+- Day18 没有偏离“最小核心服务拆分 + OpenFeign 调用治理”的路线
+- 只是没有一上来硬拆高耦合的 `order-service`
+- 而是先按“最小可跑”原则，优先拆出了边界更清晰、风险更可控的 `product-service`
+
 ### Day19：日志链路、traceId 与可观测性补强
 
 目标：

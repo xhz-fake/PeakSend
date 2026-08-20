@@ -13,11 +13,13 @@ RUN apt-get update \
 ENV JAVA_HOME=/usr/lib/jvm/java-17-openjdk-amd64
 ENV PATH="${JAVA_HOME}/bin:${PATH}"
 
+COPY .mvn/settings.xml .mvn/settings.xml
 COPY pom.xml ./
 COPY sky-common/pom.xml sky-common/pom.xml
 COPY sky-pojo/pom.xml sky-pojo/pom.xml
 COPY sky-server/pom.xml sky-server/pom.xml
 COPY sky-gateway/pom.xml sky-gateway/pom.xml
+COPY product-service/pom.xml product-service/pom.xml
 
 COPY sky-common/src sky-common/src
 COPY sky-pojo/src sky-pojo/src
@@ -25,7 +27,7 @@ COPY sky-server/src sky-server/src
 #这部分的作用就是：把你本地项目里的代码和配置，复制到容器里的 /build 目录下，把整个后端工程需要的东西都复制进去
 #Docker 打包不是直接读取你电脑里的代码，而是要先把代码“放进容器里”再打包。
 
-RUN mvn -pl sky-server -am clean package -DskipTests
+RUN mvn -s .mvn/settings.xml -pl sky-server -am clean package -DskipTests
 #在容器里执行 Maven 打包命令，这一行本质就是在容器里把 PeakSend 后端打成 jar 包
 
 ## 第二阶段，真正运行

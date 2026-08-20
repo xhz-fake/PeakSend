@@ -21,6 +21,7 @@
 - `flash_sale_async.md`
 - `order_delay_close.md`
 - `microservice_mainline.md`
+- `service_split_feign.md`
 - `trace_observability.md`
 
 如果同一条能力线后面又升级了：
@@ -80,6 +81,7 @@
 - `flash_sale_async.md`
 - `order_delay_close.md`
 - `microservice_mainline.md`
+- `service_split_feign.md`
 
 当前待补：
 

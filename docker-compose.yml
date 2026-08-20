@@ -57,7 +57,7 @@ services:
       - "8848:8848"
     healthcheck:
       #别只看 nacos 容器“启动了”，还得看它“真的健康可用了”。
-      test: ["CMD-SHELL", "curl -fsS http://127.0.0.1:8848/nacos/v1/ns/operator/servers > /dev/null || exit 1"]
+      test: ["CMD-SHELL", "curl -fsS http://127.0.0.1:8848/nacos/actuator/health > /dev/null || exit 1"]
       interval: 10s
       timeout: 5s
       retries: 12
@@ -133,6 +133,29 @@ services:
       - "8080:8080"
     volumes:
       - ./uploads:/app/uploads
+
+  product-service:
+    build:
+      context: ./peaksend-backend
+      dockerfile: Dockerfile.product
+    container_name: peaksend-product-service
+    restart: unless-stopped
+    depends_on:
+      mysql:
+        condition: service_started
+      nacos:
+        condition: service_healthy
+    environment:
+      DB_HOST: mysql
+      DB_PORT: 3306
+      DB_NAME: sky_take_out
+      DB_USERNAME: root
+      DB_PASSWORD: "060723"
+      NACOS_SERVER_ADDR: peaksend-nacos:8848
+      SKY_NACOS_DISCOVERY_ENABLED: "true"
+      TZ: Asia/Shanghai
+    ports:
+      - "8083:8083"
 
   gateway:
     build:

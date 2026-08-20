@@ -14,6 +14,10 @@ spring:
         # 管理端仍走 /api/**，Gateway 在这里统一转到业务服务的 /admin/**
         - id: admin-route
           uri: lb://sky-server
+          # 含义是：
+          #不是写死 http://localhost:8080
+          #而是“去注册中心找名叫 sky-server 的服务实例”
+
           predicates:
             - Path=/api/**
           filters:

@@ -1,4 +1,3 @@
-## 第一阶段，编译网关模块
 FROM maven:3.9.9-eclipse-temurin-8 AS builder
 
 WORKDIR /build
@@ -18,11 +17,12 @@ COPY sky-server/pom.xml sky-server/pom.xml
 COPY sky-gateway/pom.xml sky-gateway/pom.xml
 COPY product-service/pom.xml product-service/pom.xml
 
-COPY sky-gateway/src sky-gateway/src
+COPY sky-common/src sky-common/src
+COPY sky-pojo/src sky-pojo/src
+COPY product-service/src product-service/src
 
-RUN mvn -s .mvn/settings.xml -pl sky-gateway -am clean package -DskipTests
+RUN mvn -s .mvn/settings.xml -pl product-service -am clean package -DskipTests
 
-## 第二阶段，运行网关
 FROM eclipse-temurin:8-jre
 WORKDIR /app
 
@@ -33,8 +33,8 @@ RUN apt-get update \
 ENV JAVA_HOME=/usr/lib/jvm/java-17-openjdk-amd64
 ENV PATH="${JAVA_HOME}/bin:${PATH}"
 
-COPY --from=builder /build/sky-gateway/target/sky-gateway-1.0-SNAPSHOT.jar app.jar
+COPY --from=builder /build/product-service/target/product-service-1.0-SNAPSHOT.jar app.jar
 
-EXPOSE 8082
+EXPOSE 8083
 
 ENTRYPOINT ["java", "-jar", "/app/app.jar"]

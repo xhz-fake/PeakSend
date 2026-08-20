@@ -17,6 +17,7 @@
         <module>sky-pojo</module>
         <module>sky-server</module>
         <module>sky-gateway</module>
+        <module>product-service</module>
     </modules>
     <properties>
         <mybatis.spring>2.2.0</mybatis.spring>
