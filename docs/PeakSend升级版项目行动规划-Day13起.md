@@ -441,10 +441,12 @@ Day16 当前完成情况（更新于 2026-08-17）：
 - 已新增独立 `product-service` 模块，作为 Day18 第一刀的最小商品服务
 - 已在 `sky-server` 接入 `OpenFeign`
 - 已把购物车加购链路中“按 id 查询商品信息”的动作改成：
-  - `sky-server -> Feign -> product-service`
+  - `sky-server` 借助 `Feign` 调用 `product-service`
 - 已补齐 `Dockerfile.product` 与 `docker-compose.yml` 中的 `product-service` 编排
 - 已完成后端全模块构建通过
-- 当前尚未补完运行态接口验证，原因是本机 Docker daemon 未启动
+- 已补完运行态接口验证：
+  - `gateway -> sky-server -> product-service`
+  - `nginx -> gateway -> sky-server -> product-service`
 
 当前阶段结论：
 
@@ -479,6 +481,17 @@ Day16 当前完成情况（更新于 2026-08-17）：
 这一天的求职价值：
 
 - 你可以讲日志链路、traceId 透传、问题定位效率提升
+
+当前落地进展（Day19 已完成）：
+
+- 已完成 `traceId` 在 `gateway -> sky-server -> product-service` 主链中的全链路透传
+- 已完成命令行、真实浏览器页面与小程序入口三层验证
+- 已完成 Day19 正式量化留档：
+  - `30/30` 主链成功率
+  - `30/30` 日志串联率
+- 已沉淀两个高价值源码理解：
+  - `Feign` 只负责请求发起侧，响应返回方复用原连接回包
+  - `MDC` 只负责本服务日志上下文，跨服务传播仍需靠请求头接力
 
 ### Day20：量化验证、部署流程与最终表达收口
 

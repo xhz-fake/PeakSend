@@ -82,12 +82,12 @@
 - `order_delay_close.md`
 - `microservice_mainline.md`
 - `service_split_feign.md`
+- `trace_observability.md`
 
 当前待补：
 
 - `docker_delivery.md`
 - `redis_cache.md`
-- `trace_observability.md`
 
 ## 5. 当前执行规则
 

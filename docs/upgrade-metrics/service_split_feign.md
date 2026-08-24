@@ -58,9 +58,9 @@
 - 当前运行态接口验证状态：
   - 已完成核心主链验证
 - 当前已验证成功的运行态主链：
-  - `gateway(8082) -> sky-server -> Feign -> product-service`
+  - `gateway(8082) -> sky-server -> product-service`
 - 当前已补完的外层入口主链：
-  - `nginx(8081) -> gateway -> sky-server -> Feign -> product-service`
+  - `nginx(8081) -> gateway -> sky-server -> product-service`
 - 当前运行态验证使用的真实商品 id：
   - `dishId = 71`
 - 当前购物车写库验证结果：
@@ -80,7 +80,7 @@
 ## 5. 最终结论
 
 - 当前 Day18 第一阶段已经把项目从“只有微服务底座”推进到了“出现真实跨服务业务调用”的状态
-- 这次以 `product-service` 作为第一刀，先新增 `1` 个独立商品服务、落下 `1` 个 Feign 客户端和 `2` 个跨服务查询接口，并把购物车加购链路升级成 `sky-server -> Feign -> product-service`
+- 这次以 `product-service` 作为第一刀，先新增 `1` 个独立商品服务、落下 `1` 个 Feign 客户端和 `2` 个跨服务查询接口，并把购物车加购链路升级成 `sky-server` 借助 `Feign` 调用 `product-service`
 - 当前代码、构建、编排与核心运行态验证都已经成立，Day18 第一条主链的正式量化闭环已经完成
 
 ## 6. 可写进简历/话术库的句子
