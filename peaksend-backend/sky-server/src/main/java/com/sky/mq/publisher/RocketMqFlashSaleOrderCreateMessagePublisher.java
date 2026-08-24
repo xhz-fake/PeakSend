@@ -1,9 +1,11 @@
 package com.sky.mq.publisher;
 
+import com.sky.constant.TraceConstant;
 import com.sky.constant.RocketMqTopicConstant;
 import com.sky.mq.message.FlashSaleOrderCreateMessage;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.slf4j.MDC;
 import org.apache.rocketmq.spring.core.RocketMQTemplate;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.messaging.support.MessageBuilder;
@@ -27,6 +29,7 @@ public class RocketMqFlashSaleOrderCreateMessagePublisher implements FlashSaleOr
     @Override
     public void send(Long activityId, Long userId, String orderNo, LocalDateTime reservedTime) {
         FlashSaleOrderCreateMessage message = FlashSaleOrderCreateMessage.builder()//它不是直接传一堆散参数，而是封装成 FlashSaleOrderCreateMessage
+                    .traceId(MDC.get(TraceConstant.TRACE_ID))
                 .activityId(activityId)
                 .userId(userId)
                 .orderNo(orderNo)
@@ -39,6 +42,7 @@ public class RocketMqFlashSaleOrderCreateMessagePublisher implements FlashSaleOr
                 MessageBuilder.withPayload(message).build(),
                 3000
         );
-        log.info("发送限量套餐异步落库消息成功：activityId={}, userId={}, orderNo={}", activityId, userId, orderNo);
+            log.info("发送限量套餐异步落库消息成功：traceId={}, activityId={}, userId={}, orderNo={}",
+                    message.getTraceId(), activityId, userId, orderNo);
     }
 }

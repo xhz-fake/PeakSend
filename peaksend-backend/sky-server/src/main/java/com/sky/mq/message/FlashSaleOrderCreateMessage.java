@@ -14,6 +14,7 @@ import java.time.LocalDateTime;
 @AllArgsConstructor
 public class FlashSaleOrderCreateMessage implements Serializable {
 
+    private String traceId;
     private Long activityId;
     private Long userId;
     private String orderNo;

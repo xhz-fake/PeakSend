@@ -1,10 +1,12 @@
 package com.sky.mq.consumer;
 
+import com.sky.constant.TraceConstant;
 import com.sky.constant.RocketMqTopicConstant;
 import com.sky.mq.message.OrderDelayCloseMessage;
 import com.sky.service.OrderDelayCloseHandleService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.slf4j.MDC;
 import org.apache.rocketmq.spring.annotation.ConsumeMode;
 import org.apache.rocketmq.spring.annotation.RocketMQMessageListener;
 import org.apache.rocketmq.spring.core.RocketMQListener;
@@ -26,8 +28,15 @@ public class OrderDelayCloseConsumer implements RocketMQListener<OrderDelayClose
 
     @Override
     public void onMessage(OrderDelayCloseMessage message) {
-        log.info("收到订单延迟关单消息：orderId={}, orderNumber={}",
-                message.getOrderId(), message.getOrderNumber());
-        orderDelayCloseHandleService.closeIfPending(message);
+            try {
+                if (message.getTraceId() != null && !message.getTraceId().isEmpty()) {
+                    MDC.put(TraceConstant.TRACE_ID, message.getTraceId());
+                }
+                log.info("收到订单延迟关单消息：traceId={}, orderId={}, orderNumber={}",
+                        message.getTraceId(), message.getOrderId(), message.getOrderNumber());
+                orderDelayCloseHandleService.closeIfPending(message);
+            } finally {
+                MDC.remove(TraceConstant.TRACE_ID);
+            }
     }
 }

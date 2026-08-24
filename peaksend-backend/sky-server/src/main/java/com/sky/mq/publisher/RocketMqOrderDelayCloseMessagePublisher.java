@@ -1,11 +1,13 @@
 package com.sky.mq.publisher;
 
+import com.sky.constant.TraceConstant;
 import com.sky.constant.RocketMqTopicConstant;
 import com.sky.entity.Orders;
 import com.sky.mq.message.OrderDelayCloseMessage;
 import com.sky.properties.RocketMqBizProperties;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.slf4j.MDC;
 import org.apache.rocketmq.spring.core.RocketMQTemplate;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.messaging.support.MessageBuilder;
@@ -23,6 +25,7 @@ public class RocketMqOrderDelayCloseMessagePublisher implements OrderDelayCloseM
     @Override
     public void send(Orders orders) {
         OrderDelayCloseMessage message = OrderDelayCloseMessage.builder()
+                .traceId(MDC.get(TraceConstant.TRACE_ID))
                 .orderId(orders.getId())
                 .userId(orders.getUserId())
                 .orderNumber(orders.getNumber())
@@ -35,6 +38,7 @@ public class RocketMqOrderDelayCloseMessagePublisher implements OrderDelayCloseM
                 3000,
                 rocketMqBizProperties.getOrderDelayLevel()
         );
-        log.info("发送订单延迟关单消息成功：orderId={}, orderNumber={}", orders.getId(), orders.getNumber());
+            log.info("发送订单延迟关单消息成功：traceId={}, orderId={}, orderNumber={}",
+                    message.getTraceId(), orders.getId(), orders.getNumber());
     }
 }

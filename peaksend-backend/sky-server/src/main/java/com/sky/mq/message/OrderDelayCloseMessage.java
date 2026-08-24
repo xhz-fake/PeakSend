@@ -14,6 +14,7 @@ import java.time.LocalDateTime;
 @AllArgsConstructor
 public class OrderDelayCloseMessage implements Serializable {
 
+    private String traceId;
     private Long orderId;
     private Long userId;
     private String orderNumber;

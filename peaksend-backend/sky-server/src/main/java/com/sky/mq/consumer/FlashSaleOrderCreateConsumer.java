@@ -1,10 +1,12 @@
 package com.sky.mq.consumer;
 
+import com.sky.constant.TraceConstant;
 import com.sky.constant.RocketMqTopicConstant;
 import com.sky.mq.message.FlashSaleOrderCreateMessage;
 import com.sky.service.FlashSaleAsyncPersistenceService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.slf4j.MDC;
 import org.apache.rocketmq.spring.annotation.ConsumeMode;
 import org.apache.rocketmq.spring.annotation.RocketMQMessageListener;
 import org.apache.rocketmq.spring.core.RocketMQListener;
@@ -30,13 +32,16 @@ public class FlashSaleOrderCreateConsumer implements RocketMQListener<FlashSaleO
 
     @Override
     public void onMessage(FlashSaleOrderCreateMessage message) {
-        // 它只做两件事：
-        //1. 打“收到消息”的日志
-        //2. 调真正的业务 Service
-
-        log.info("收到限量套餐异步落库消息：activityId={}, userId={}, orderNo={}",
-                message.getActivityId(), message.getUserId(), message.getOrderNo());
-        flashSaleAsyncPersistenceService.persistOrder(message);
+            try {
+                if (message.getTraceId() != null && !message.getTraceId().isEmpty()) {
+                    MDC.put(TraceConstant.TRACE_ID, message.getTraceId());
+                }
+                log.info("收到限量套餐异步落库消息：traceId={}, activityId={}, userId={}, orderNo={}",
+                        message.getTraceId(), message.getActivityId(), message.getUserId(), message.getOrderNo());
+                flashSaleAsyncPersistenceService.persistOrder(message);
+            } finally {
+                MDC.remove(TraceConstant.TRACE_ID);
+            }
     }
 
 }

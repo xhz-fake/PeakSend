@@ -358,7 +358,176 @@ Day18 的目标不是继续停留在：
 
 ---
 
-## 8. Day18 第一阶段最适合怎么讲
+## 8. Feign、Spring MVC、MyBatis 在这条链里分别干什么
+
+这一段是 Day18 最容易反复混淆、但又最值得讲透的部分。
+
+因为购物车加购改造成跨服务调用之后，链路里同时出现了：
+
+- `OpenFeign`
+- `Spring MVC`
+- `MyBatis`
+- `DishVO`
+- `JSON`
+
+如果不把这几个角色拆开，很容易误以为：
+
+- `Feign` 是一个夹在两个服务中间的独立节点
+- 或者“所有 JSON 和对象之间的转换都是 Spring MVC 在干”
+
+这些理解都不够准确。
+
+### 8.1 Feign 不是独立服务，而是调用方内部的远程调用组件
+
+在当前项目里，真正主动发起跨服务请求的是：
+
+- `sky-server`
+
+而 `Feign` 的作用是：
+
+- 让 `sky-server` 里调用 `ProductClient` 接口方法时
+- 底层自动构造成一个 HTTP 请求
+- 再发送给 `product-service`
+
+所以更准确的理解不是：
+
+- `sky-server -> Feign -> product-service`（把 `Feign` 当成独立节点）
+
+而是：
+
+- `sky-server` **借助 `Feign`** 去调用 `product-service`
+
+这也是为什么：
+
+- `Feign` 属于调用方 `sky-server`
+- 而不是网络中单独存在的一个“中间服务”
+
+### 8.2 为什么 `sky-server -> product-service` 要 Feign，而返回时不需要
+
+这个问题非常关键。
+
+原因是：
+
+- `Feign` 只负责“主动发请求”的一侧
+- 不负责“被动返回响应”的一侧
+
+也就是说：
+
+- 当 `sky-server` 需要商品信息时，它要主动去找 `product-service`
+- 这时候需要有人帮它构造请求、带上参数、发送 HTTP、解析响应
+- 所以这里需要 `Feign`
+
+但 `product-service` 在收到请求之后，只是在做：
+
+- 接住请求
+- 查数据
+- 沿着**同一条 HTTP 连接**把响应写回去
+
+这不是重新发起了一次新请求，所以它不需要 `Feign`。
+
+一句话记忆：
+
+- **Feign 只出现在请求发起方；响应返回方只是复用原连接回包。**
+
+### 8.3 这条商品查询跨服务链路到底怎么走
+
+完整顺序如下：
+
+1. `sky-server` 的 [ShoppingCartServiceImpl.java](file:///D:/ProgramFiles/CodeProjects/PeakSend/peaksend-backend/sky-server/src/main/java/com/sky/service/impl/ShoppingCartServiceImpl.java) 里调用：
+   - `productClient.getDishById(dishId)`
+2. `sky-server` 内部的 `Feign` 根据 [ProductClient.java](file:///D:/ProgramFiles/CodeProjects/PeakSend/peaksend-backend/sky-server/src/main/java/com/sky/client/ProductClient.java) 的接口声明：
+   - 把方法调用构造成 HTTP 请求
+   - 发给 `product-service`
+3. `product-service` 的 [ProductQueryController.java](file:///D:/ProgramFiles/CodeProjects/PeakSend/peaksend-backend/product-service/src/main/java/com/sky/product/controller/ProductQueryController.java) 接住请求
+4. Controller 调 Service，Service 再调 Mapper
+5. `MyBatis` 根据 Mapper + XML 执行 SQL
+6. 数据库结果被映射成 `DishVO`
+7. `Spring MVC / Jackson` 再把这个 `DishVO` 序列化成 JSON 响应
+8. 响应通过原 HTTP 连接回到 `sky-server`
+9. `sky-server` 侧的 `Feign` 再把 JSON 解码成 `DishVO`
+10. 业务代码继续使用这个 `DishVO` 补齐购物车数据
+
+### 8.4 为什么这里不是“Spring MVC 把请求体 JSON 转成 DTO”
+
+这也是一个高频误区。
+
+当前商品查询接口是：
+
+- `GET /rpc/products/dishes/{id}`
+
+所以这里并没有：
+
+- `@RequestBody`
+- JSON 请求体
+- DTO 绑定
+
+在这个场景下，`Spring MVC` 做的是：
+
+- 把路径中的 `{id}` 绑定为方法参数 `Long id`
+
+而不是：
+
+- 把 JSON 请求体解析成 DTO
+
+这和用户端新增购物车这类接口不同。
+
+后者更像：
+
+- 前端发 JSON
+- `Spring MVC` 把 JSON 解析成 `ShoppingCartDTO`
+
+而商品查询这一条链不是这种模式。
+
+### 8.5 MyBatis 和 Spring MVC 的边界在哪里
+
+在 `product-service` 内部，这两者是连续配合、但职责不同的两步：
+
+#### 第一步：MyBatis
+
+- 根据 Mapper 方法找到对应 SQL
+- 绑定参数
+- 执行 SQL
+- 把数据库结果集映射成 `DishVO`
+
+也就是：
+
+- **数据库行 -> `DishVO`**
+
+#### 第二步：Spring MVC / Jackson
+
+- Controller 返回 `DishVO`
+- 把这个 `DishVO` 序列化成 JSON 响应体
+
+也就是：
+
+- **`DishVO` -> JSON**
+
+所以最准确的说法是：
+
+- `MyBatis` 负责服务内部的数据访问与对象映射
+- `Spring MVC` 负责服务端 HTTP 收发时的参数绑定与响应序列化
+
+### 8.6 为什么 `sky-server` 侧不是 Spring MVC 在把 JSON 转回对象
+
+因为这一步发生在：
+
+- `sky-server` 作为**HTTP 客户端**
+- 收到别的服务响应之后
+
+它不是 Controller 在接浏览器请求，所以这里不是 Spring MVC 的典型服务端场景。
+
+更准确地说：
+
+- `product-service` 服务端由 `Spring MVC` 把 `DishVO` 写成 JSON
+- `sky-server` 调用侧由 `Feign` 客户端根据接口返回类型把 JSON 解码成 `DishVO`
+
+所以一句话总结这三个组件的分工：
+
+- `Feign`：解决跨服务通信
+- `Spring MVC`：解决服务端 HTTP 收发
+- `MyBatis`：解决服务内部数据库访问
+
+## 9. Day18 第一阶段最适合怎么讲
 
 最稳的一句话是：
 

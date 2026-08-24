@@ -28,6 +28,8 @@ mybatis:
     map-underscore-to-camel-case: true
 
 logging:
+  pattern:
+    level: "traceId=%X{traceId} %5p"
   level:
     com:
       sky:
